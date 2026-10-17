@@ -1,0 +1,18 @@
+[project]
+name = "quality-engineering-automation-challenge"
+version = "0.1.0"
+description = "Quality Engineering automation challenge"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["api/tests"]
+addopts = "-ra"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-html>=4.2.0",
+    "pytest-playwright>=0.10.0",
+    "ruff>=0.17.1",
+]

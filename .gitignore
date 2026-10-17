@@ -1,0 +1,28 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node.js / TypeScript
+**/node_modules/
+**/dist/
+
+# Relatorios e evidencias geradas
+reports/*
+!reports/.gitkeep
+**/playwright-report/
+**/test-results/
+*.log
+
+# Variaveis de ambiente e segredos
+.env
+.env.*
+!.env.example
+
+# Arquivos locais de editores e SO
+.idea/
+.DS_Store
