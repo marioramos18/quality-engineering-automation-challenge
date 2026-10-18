@@ -1,6 +1,6 @@
 # Quality Engineering Automation Challenge
 
-Automação de API e navegador para duas aplicações públicas de demonstração, com um desafio opcional de performance contra uma API mock local. Os resultados da execução automática ficam na aba **Actions** do GitHub, no workflow **Quality**. Cada execução publica relatórios como artifacts ao final de cada job.
+Automação de API e navegador para duas aplicações públicas de demonstração, com um desafio opcional de performance contra uma API mock local. Os resultados da execução automática ficam na aba **Actions** do GitHub: o workflow **Quality** executa API e E2E, e **Performance** executa k6 somente quando acionado manualmente. Cada execução publica os relatórios disponíveis como artifacts.
 
 ## Início rápido
 
@@ -16,7 +16,7 @@ make test-load-smoke
 
 `make test-all` executa API e E2E, mostra os dois códigos de saída e falha se qualquer um falhar. `make test-api-finding` executa separadamente o achado API-001 e preserva seu resultado FAILED. O conjunto padrão E2E executa **somente `@checkout-safe`**; não inclui tentativas de senha incorreta nem finaliza compras.
 
-Os relatórios locais ficam em `reports/api-regression/report.html`, `reports/api-quality-findings/report.html` e `reports/e2e-report.html`; os diagnósticos do catálogo ficam em `reports/catalog-diagnostics/`. Os comandos completos sem Make para [API](#executar-a-api), [E2E](#executar-o-e2e-seguro) e typecheck aparecem abaixo. No GitHub Actions, os jobs usam os comandos do [workflow](.github/workflows/quality.yml) e publicam artifacts; o resultado local não substitui o resultado do CI. O E2E no CI permanece bloqueado por HTTP 403 do Cloudflare, e compra concluída e rejeição de cartão inválido continuam fora da cobertura implementada.
+Os relatórios locais ficam em `reports/api-regression/report.html`, `reports/api-quality-findings/report.html`, `reports/e2e-report.html` e `reports/performance/`; os diagnósticos do catálogo ficam em `reports/catalog-diagnostics/`. Os comandos completos sem Make para [API](#executar-a-api), [E2E](#executar-o-e2e-seguro) e typecheck aparecem abaixo. No GitHub Actions, os jobs usam os comandos do [workflow Quality](.github/workflows/quality.yml) e do [workflow Performance](.github/workflows/performance.yml) e publicam artifacts; o resultado local não substitui o resultado do runner. O E2E no CI permanece bloqueado por HTTP 403 do Cloudflare, e compra concluída e rejeição de cartão inválido continuam fora da cobertura implementada.
 
 ## Arquitetura
 
@@ -25,7 +25,7 @@ Os relatórios locais ficam em `reports/api-regression/report.html`, `reports/ap
 | `api/` | Python 3.12, Pytest, cliente HTTP do Playwright | Contratos e cenários negativos do Restful Booker |
 | `web/` | TypeScript, Cucumber.js, Playwright, Page Objects | Carrinho e checkout visitante até Payment; outros cenários ficam fora do CI seguro |
 | `mobile/` | Appium | Diretório reservado; sem job neste workflow |
-| `performance/` | Node.js nativo, Docker Compose e k6 | API mock isolada e cenário opcional de 500 VUs por 5 minutos; sem job neste workflow |
+| `performance/` | Node.js nativo, Docker Compose e k6 | API mock isolada e cenário opcional de 500 VUs por 5 minutos; workflow manual separado |
 | `docs/` | Markdown | [Estratégia](docs/test-strategy.md), [achados](docs/findings.md), [investigação do checkout](docs/checkout-investigation.md), [alternativas de e-commerce](docs/ecommerce-alternatives.md) e [resultados de performance](docs/performance-results.md) |
 
 As fixtures em `api/conftest.py` criam dados de reserva e removem as reservas geradas. No navegador, `E2EWorld` e os hooks abrem um contexto novo por cenário; os Page Objects concentram os seletores. O checkout automatizado termina na tela de pagamento, sem acionar `finish`.
@@ -110,9 +110,9 @@ Na raiz do projeto, execute o smoke validado; o script inicia a API, aguarda o h
 make test-load-smoke
 ```
 
-O smoke usa **10 VUs por 15 segundos**. Somente para smoke ou diagnóstico, é possível ajustar `PERF_VUS` e `PERF_DURATION`, por exemplo: `PERF_VUS=20 PERF_DURATION=30s make test-load-smoke`. O perfil completo ignora essas variáveis e mantém 500 VUs por 5 minutos: `make test-load`. **O perfil completo ainda não foi executado; aguarda revisão da implementação.**
+O smoke usa **10 VUs por 15 segundos**. Somente para smoke ou diagnóstico local, é possível ajustar `PERF_VUS` e `PERF_DURATION`, por exemplo: `PERF_VUS=20 PERF_DURATION=30s make test-load-smoke`. O perfil completo ignora essas variáveis e mantém 500 VUs por 5 minutos: `make test-load`. Uma execução local completa está registrada em [resultados de performance](docs/performance-results.md); isso não comprova que o workflow passou no GitHub.
 
-Os resultados ficam em `reports/performance/smoke-summary.json` e `smoke-summary.txt` ou, após o perfil completo, `load-summary.json` e `load-summary.txt`. O resumo também aparece no console. O [registro dos resultados e roteiro de análise](docs/performance-results.md) separa números medidos de pendências.
+Os resultados ficam em `reports/performance/smoke-summary.json` e `smoke-summary.txt` ou `load-summary.json` e `load-summary.txt`, conforme o perfil. O resumo também aparece no console. O [registro dos resultados](docs/performance-results.md) separa números medidos de hipóteses.
 
 Os thresholds de referência da API mock são taxa de erro HTTP **< 1%**, taxa de erro de contrato **< 1%** e latência HTTP **p95 < 500 ms**. Eles fazem o k6 retornar erro quando falham, mas **não são SLAs reais**. Gerador e API dividem a mesma máquina e recursos de Docker; CPU, memória, disco e agendamento local influenciam a vazão e a latência. O smoke confirma o funcionamento do cenário, não a capacidade de produção nem o resultado esperado para 500 VUs.
 
@@ -128,6 +128,14 @@ O workflow `.github/workflows/quality.yml` roda em `push` para `main`, `pull_req
 | E2E Safe | Imagem Docker existente, somente `@checkout-safe` | Falha bloqueia o job |
 
 Os dois jobs são independentes. Dentro de `API Tests`, o API-001 mantém sua assertion, o código de saída real do Pytest (atualmente FAILED) e relatório próprio. O `continue-on-error` da etapa permite concluir a regressão sem apresentar o achado como teste aprovado; o resultado original é registrado no `GITHUB_STEP_SUMMARY`. Nenhum teste usa XFAIL ou SKIP para esse achado.
+
+### Performance manual no GitHub Actions
+
+Na aba **Actions**, selecione **Performance**, clique em **Run workflow**, escolha `smoke` (padrão: 10 VUs por 15 segundos) ou `load` (500 VUs por 5 minutos) e inicie a execução. O workflow não roda em push nem em pull request. Ele usa `ubuntu-24.04`, inicia a mesma API mock e o k6 via Docker Compose, e chama `make test-load-smoke` ou `make test-load`. O script de execução encerra os containers e preserva a falha do k6 ou dos thresholds.
+
+Ao terminar, abra a execução na aba **Actions** para ver o resumo das métricas e baixe o artifact `performance-smoke-reports` ou `performance-load-reports`. Ele contém o JSON e o TXT gerados em `reports/performance/`, quando a execução alcança a geração dos resumos. Se ela falhar antes disso, consulte o log da etapa de execução. Nenhuma credencial privada é necessária; a rede Docker é interna e a carga não é enviada a serviços públicos.
+
+Localmente, k6 e API mock compartilham os recursos da sua máquina; no GitHub, compartilham os recursos do runner. Diferenças de CPU, memória e agendamento podem mudar vazão e latência. O `sleep(1)` também limita a taxa produzida. Resultados do runner devem ser interpretados separadamente dos [resultados locais](docs/performance-results.md); nenhum deles mede capacidade de produção. O workflow ainda não foi executado no GitHub.
 
 ## Limitações da execução E2E no GitHub Actions
 

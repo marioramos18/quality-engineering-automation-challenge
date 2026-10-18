@@ -1,0 +1,90 @@
+name: Performance
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Perfil de carga contra a API mock local
+        required: true
+        type: choice
+        default: smoke
+        options:
+          - smoke
+          - load
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  performance:
+    name: k6 (${{ inputs.profile }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run selected profile
+        env:
+          PROFILE: ${{ inputs.profile }}
+          PERF_VUS: "10"
+          PERF_DURATION: 15s
+        run: |
+          case "$PROFILE" in
+            smoke) make test-load-smoke ;;
+            load) make test-load ;;
+            *) printf 'Unsupported profile: %s\n' "$PROFILE" >&2; exit 2 ;;
+          esac
+
+      - name: Summarize measured results
+        if: always()
+        env:
+          PROFILE: ${{ inputs.profile }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          profile = os.environ['PROFILE']
+          report = Path('reports/performance') / f'{profile}-summary.json'
+          summary_path = Path(os.environ['GITHUB_STEP_SUMMARY'])
+          with summary_path.open('a', encoding='utf-8') as output:
+              output.write(f'### k6 — {profile}\n\n')
+              if not report.is_file():
+                  output.write('Resumo JSON não gerado; consulte o log da etapa de execução.\n')
+                  raise SystemExit(f'Missing k6 summary: {report}')
+
+              data = json.loads(report.read_text(encoding='utf-8'))
+              rows = [
+                  ('Perfil', data['profile']),
+                  ('VUs configurados / alcançados', f"{data['configuredVus']} / {data['achievedVus']}"),
+                  ('Duração configurada', data['duration']),
+                  ('Requisições', data['requests']),
+                  ('Vazão média', f"{data['requestsPerSecond']:.2f} req/s"),
+                  ('Erros HTTP', f"{data['httpErrorRate'] * 100:.2f}%"),
+                  ('Erros de contrato', f"{data['contractErrorRate'] * 100:.2f}%"),
+                  ('Latência p95', f"{data['latencyMs']['p95']:.2f} ms"),
+                  ('Thresholds', 'PASS' if data['thresholdsPassed'] else 'FAIL'),
+              ]
+              output.write('| Métrica | Valor medido |\n| --- | ---: |\n')
+              for label, value in rows:
+                  output.write(f'| {label} | {value} |\n')
+              output.write('\n')
+              for name, passed in data['thresholds'].items():
+                  output.write(f'- {"PASS" if passed else "FAIL"}: `{name}`\n')
+
+          if not data['thresholdsPassed']:
+              raise SystemExit('Required k6 threshold failed')
+          PY
+
+      - name: Upload performance reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-${{ inputs.profile }}-reports
+          path: reports/performance/
+          if-no-files-found: warn
