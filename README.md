@@ -73,8 +73,16 @@ O workflow `.github/workflows/quality.yml` roda em `push` para `main`, `pull_req
 
 Os jobs são independentes. A separação permite distinguir regressões dos cenários seguros do diagnóstico API-001, sem transformar uma falha conhecida em PASS, XFAIL ou SKIP.
 
+## Limitações da execução E2E no GitHub Actions
+
+Na execução local com Docker, os **7 cenários `@checkout-safe` e 41 steps passaram**. No GitHub Actions, os **7 cenários ficaram FAILED** no mesmo ponto, antes da seleção do produto: a navegação para `https://practicesoftwaretesting.com/` recebeu **HTTP 403** do Cloudflare, apresentou a página **"Just a moment..."** de verificação humana e não renderizou produtos.
+
+O artifact `e2e-safe-reports` da execução no GitHub contém o relatório HTML (`e2e-report.html`), o log (`e2e-safe.log`) e os JSONs e screenshots em `catalog-diagnostics/`. Os diagnósticos registram URL, título, status HTTP, contagens de produtos e imagem da página. Essas evidências mostram uma barreira de acesso no runner do CI; os testes não chegaram a exercitar o carrinho ou o checkout. Por isso, a falha **não comprova um defeito funcional** nesses fluxos.
+
+Não adotamos proxies, técnicas de ocultação do navegador nem automação da verificação humana para contornar a proteção anti-bot da aplicação pública. A **execução E2E no GitHub permanece não atendida e o job permanece FAILED**. Uma solução definitiva depende de um ambiente Toolshop autorizado e acessível ao runner do CI. Checkout concluído e rejeição de cartão inválido também permanecem fora da cobertura implementada.
+
 ## Limitações e cobertura pendente
 
 Restful Booker e Toolshop são serviços públicos compartilhados; disponibilidade, dados e comportamento podem mudar durante a execução. O [achado API-001](docs/findings.md) registra HTTP 500 ao criar uma reserva sem `firstname`; a classificação contratual permanece em investigação.
 
-**Checkout concluído e rejeição de cartão inválido não foram automatizados.** A conclusão cria uma fatura e pode acionar email e atualização de estoque. Para cobrir esses requisitos, use uma instância local controlada do Toolshop, com dados e caixa de email isolados, conforme a [estratégia de testes](docs/test-strategy.md). Nenhum resultado do GitHub Actions é declarado aqui antes da primeira execução real.
+**Checkout concluído e rejeição de cartão inválido não foram automatizados.** A conclusão cria uma fatura e pode acionar email e atualização de estoque. Para cobrir esses requisitos, use uma instância local controlada do Toolshop, com dados e caixa de email isolados, conforme a [estratégia de testes](docs/test-strategy.md).

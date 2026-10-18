@@ -4,7 +4,7 @@
 
 A regressão API reúne verificações de contrato, autenticação, autorização e validações que têm assertions explícitas. O teste `test_post_rejects_missing_firstname` permanece como diagnóstico `quality_finding`: espera HTTP 400/422 e atualmente documenta uma resposta HTTP 500 da API pública. Ele é executado em job separado, com resultado real de Pytest e relatório próprio.
 
-No E2E contínuo, a tag `@checkout-safe` seleciona carrinho, checkout visitante até Payment e bloqueio de endereço incompleto. Esses cenários exercitam transições e valores visíveis sem concluir pedidos. Cenários de login negativo não participam do CI porque usam contas de demonstração compartilhadas.
+No job E2E, a tag `@checkout-safe` seleciona carrinho, checkout visitante até Payment e bloqueio de endereço incompleto. Esses cenários foram implementados para exercitar transições e valores visíveis sem concluir pedidos. Cenários de login negativo não participam do CI porque usam contas de demonstração compartilhadas.
 
 ## Isolamento e dados
 
@@ -12,15 +12,23 @@ Cada cenário Cucumber inicia e encerra seu próprio contexto de navegador. Os t
 
 ## Riscos do ambiente compartilhado
 
-Os dois serviços públicos podem ficar indisponíveis, mudar resposta ou ter dados alterados por outros usuários. A seleção de produto no Toolshop depende de estoque disponível. Reservas criadas na API pública têm efeito temporário até a limpeza. Os relatórios devem distinguir indisponibilidade ambiental de uma divergência funcional reproduzível. A primeira execução do CI deve confirmar conectividade, disponibilidade de produto e escrita dos relatórios no volume Docker.
+Os dois serviços públicos podem ficar indisponíveis, mudar resposta ou ter dados alterados por outros usuários. A seleção de produto no Toolshop depende de estoque disponível. Reservas criadas na API pública têm efeito temporário até a limpeza. Os relatórios devem distinguir indisponibilidade ambiental de uma divergência funcional reproduzível. No GitHub Actions, a proteção do Cloudflare impediu o acesso ao catálogo antes que a disponibilidade de produto pudesse ser avaliada.
+
+## Limitações da execução E2E no GitHub Actions
+
+A execução local com Docker comprovou **7 cenários e 41 steps aprovados** para `@checkout-safe`. No GitHub Actions, os **7 cenários ficaram FAILED** em `CatalogPage.openAvailableProduct()`. Os sete diagnósticos registraram **HTTP 403** na navegação para `https://practicesoftwaretesting.com/`, título **"Just a moment..."**, página de verificação humana do Cloudflare e **zero produtos renderizados**. Todos falharam antes de acessar um produto.
+
+O artifact `e2e-safe-reports` disponibiliza `e2e-report.html`, `e2e-safe.log` e os pares JSON/PNG em `catalog-diagnostics/`. O JSON registra a URL e as respostas HTTP; o PNG mostra a página exibida. A combinação desses registros permite distinguir bloqueio de acesso no runner de falha funcional: os passos de carrinho e checkout não foram alcançados no CI. Os resultados locais demonstram que os cenários funcionaram naquele ambiente, mas não substituem uma execução aprovada no GitHub.
+
+Não usamos proxies, disfarces de navegador ou automação da verificação humana para contornar a proteção anti-bot. O job E2E continua **FAILED** e a execução E2E no GitHub permanece **não atendida**. Para torná-la reproduzível, é necessário um ambiente Toolshop autorizado e acessível ao CI, com dados de teste controlados. As assertions, os timeouts, os locators e os critérios de sucesso permanecem intactos.
 
 ## Cobertura entregue e requisitos pendentes
 
-| Área | Entregue no CI | Pendente |
+| Área | Cobertura implementada | Pendente |
 | --- | --- | --- |
 | API | Regressão e job diagnóstico do API-001 com HTML, JUnit XML e logs | Confirmação contratual do HTTP 500 |
-| Carrinho | Produto disponível, quantidade, preço de linha e total | Variações adicionais de produto e desconto |
-| Checkout visitante | Endereço válido até Payment e cinco campos ausentes no endereço | Pedido concluído e rejeição de cartão inválido |
+| Carrinho | Produto disponível, quantidade, preço de linha e total; aprovado localmente | Execução E2E no GitHub bloqueada por HTTP 403; variações adicionais de produto e desconto |
+| Checkout visitante | Endereço válido até Payment e cinco campos ausentes no endereço; aprovado localmente | Execução E2E no GitHub bloqueada por HTTP 403; pedido concluído e rejeição de cartão inválido não implementados |
 | Autenticação web | Cenários existentes preservados no repositório | Execução negativa em ambiente isolado |
 
 ## Checkout completo em ambiente controlado
