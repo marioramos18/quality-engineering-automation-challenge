@@ -96,4 +96,5 @@ jobs:
           path: |
             reports/e2e-report.html
             reports/e2e-safe.log
+            reports/catalog-diagnostics/
           if-no-files-found: warn
