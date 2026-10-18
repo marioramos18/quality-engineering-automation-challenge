@@ -1,0 +1,99 @@
+name: Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api-regression:
+    name: API Regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install locked dependencies
+        run: uv sync --locked --dev
+      - name: Ruff
+        run: uv run --locked ruff check api
+      - name: Pytest regression
+        run: |
+          mkdir -p reports/api-regression
+          set -o pipefail
+          uv run --locked pytest api/tests -m "not quality_finding" -v \
+            --html=reports/api-regression/report.html --self-contained-html \
+            --junitxml=reports/api-regression/junit.xml \
+            2>&1 | tee reports/api-regression/pytest.log
+      - name: Upload API regression reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-regression-reports
+          path: reports/api-regression/
+          if-no-files-found: warn
+
+  api-quality-findings:
+    name: API Quality Findings
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install locked dependencies
+        run: uv sync --locked --dev
+      - name: Pytest known finding API-001
+        run: |
+          mkdir -p reports/api-quality-findings
+          set -o pipefail
+          uv run --locked pytest \
+            api/tests/test_required_fields_negative.py::test_post_rejects_missing_firstname -v \
+            --html=reports/api-quality-findings/report.html --self-contained-html \
+            --junitxml=reports/api-quality-findings/junit.xml \
+            2>&1 | tee reports/api-quality-findings/pytest.log
+      - name: Upload API finding reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-quality-findings-reports
+          path: reports/api-quality-findings/
+          if-no-files-found: warn
+
+  e2e-safe:
+    name: E2E Safe
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build existing E2E image
+        run: docker build -t quality-challenge-e2e:ci web
+      - name: Run safe checkout scenarios
+        run: |
+          mkdir -p reports
+          set -o pipefail
+          docker run --rm --ipc=host \
+            -v "$PWD/reports:/workspace/reports" \
+            quality-challenge-e2e:ci \
+            npm test -- --tags @checkout-safe \
+            2>&1 | tee reports/e2e-safe.log
+      - name: Upload E2E safe reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-safe-reports
+          path: |
+            reports/e2e-report.html
+            reports/e2e-safe.log
+          if-no-files-found: warn

@@ -56,6 +56,7 @@ def test_put_rejects_missing_required_field(
     assert get_response.json() == booking_payload
 
 
+@pytest.mark.quality_finding
 def test_post_rejects_missing_firstname(
     api_client: APIRequestContext,
     booking_payload: dict,
