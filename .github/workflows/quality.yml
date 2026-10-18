@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  api-regression:
-    name: API Regression
+  api-tests:
+    name: API Tests
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +22,7 @@ jobs:
         with:
           enable-cache: true
       - name: Install locked dependencies
+        id: install
         run: uv sync --locked --dev
       - name: Ruff
         run: uv run --locked ruff check api
@@ -33,43 +34,35 @@ jobs:
             --html=reports/api-regression/report.html --self-contained-html \
             --junitxml=reports/api-regression/junit.xml \
             2>&1 | tee reports/api-regression/pytest.log
-      - name: Upload API regression reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: api-regression-reports
-          path: reports/api-regression/
-          if-no-files-found: warn
-
-  api-quality-findings:
-    name: API Quality Findings
-    runs-on: ubuntu-24.04
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-      - name: Install locked dependencies
-        run: uv sync --locked --dev
       - name: Pytest known finding API-001
+        id: api_finding
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        continue-on-error: true
         run: |
           mkdir -p reports/api-quality-findings
           set -o pipefail
           uv run --locked pytest \
-            api/tests/test_required_fields_negative.py::test_post_rejects_missing_firstname -v \
+            api/tests/test_required_fields_negative.py::test_post_rejects_missing_firstname \
+            -m quality_finding -v \
             --html=reports/api-quality-findings/report.html --self-contained-html \
             --junitxml=reports/api-quality-findings/junit.xml \
             2>&1 | tee reports/api-quality-findings/pytest.log
-      - name: Upload API finding reports
+      - name: Summarize API finding
+        if: always()
+        run: |
+          printf '### API-001 — diagnóstico separado\n\n' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Resultado original da etapa Pytest: **%s**.\n' \
+            '${{ steps.api_finding.outcome }}' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Um resultado failure indica que o teste continua FAILED; a etapa não integra a regressão aprovada.\n' \
+            >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload API reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: api-quality-findings-reports
-          path: reports/api-quality-findings/
+          name: api-tests-reports
+          path: |
+            reports/api-regression/
+            reports/api-quality-findings/
           if-no-files-found: warn
 
   e2e-safe:

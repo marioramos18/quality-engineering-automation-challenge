@@ -24,7 +24,7 @@ A API deve rejeitar a entrada inválida com uma resposta HTTP 4xx apropriada e u
 
 `api/tests/test_required_fields_negative.py::test_post_rejects_missing_firstname`
 
-Relatório atual: `reports/api-quality-findings/report.html` (artifact `api-quality-findings-reports` no GitHub Actions).
+Relatório atual: `reports/api-quality-findings/report.html` (pasta `api-quality-findings/` do artifact `api-tests-reports` no GitHub Actions). O resumo da execução mostra o `outcome` original da etapa diagnóstica.
 
 ### Análise
 

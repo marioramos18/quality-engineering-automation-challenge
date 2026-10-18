@@ -2,7 +2,7 @@
 
 ## Seleção dos cenários
 
-A regressão API reúne verificações de contrato, autenticação, autorização e validações que têm assertions explícitas. O teste `test_post_rejects_missing_firstname` permanece como diagnóstico `quality_finding`: espera HTTP 400/422 e atualmente documenta uma resposta HTTP 500 da API pública. Ele é executado em job separado, com resultado real de Pytest e relatório próprio.
+A regressão API reúne verificações de contrato, autenticação, autorização e validações que têm assertions explícitas. O teste `test_post_rejects_missing_firstname` permanece como diagnóstico `quality_finding`: espera HTTP 400/422 e atualmente documenta uma resposta HTTP 500 da API pública. No job `API Tests`, Ruff e os 22 testes de regressão são bloqueantes; o achado roda em etapa própria com `continue-on-error` apenas nessa etapa. O código de saída e o relatório do Pytest preservam o resultado real (atualmente FAILED), e `steps.api_finding.outcome` o registra no resumo da execução.
 
 No job E2E, a tag `@checkout-safe` seleciona carrinho, checkout visitante até Payment e bloqueio de endereço incompleto. Esses cenários foram implementados para exercitar transições e valores visíveis sem concluir pedidos. Cenários de login negativo não participam do CI porque usam contas de demonstração compartilhadas.
 
@@ -10,7 +10,7 @@ Os cenários `@login-negative` só podem começar quando `E2E_ALLOW_NEGATIVE_AUT
 
 ## Isolamento e dados
 
-Cada cenário Cucumber inicia e encerra seu próprio contexto de navegador. Os testes de checkout usam dados sintéticos e email `example.com`, não usam conta demonstrativa e não acionam `data-test="finish"`. Os testes API geram payloads independentes; a fixture de reserva criada tenta remover o registro após o cenário. O job de achados mantém a limpeza defensiva já existente no teste.
+Cada cenário Cucumber inicia e encerra seu próprio contexto de navegador. Os testes de checkout usam dados sintéticos e email `example.com`, não usam conta demonstrativa e não acionam `data-test="finish"`. Os testes API geram payloads independentes; a fixture de reserva criada tenta remover o registro após o cenário. A etapa diagnóstica do API-001 mantém a limpeza defensiva já existente no teste.
 
 ## Riscos do ambiente compartilhado
 
@@ -28,7 +28,7 @@ Não usamos proxies, disfarces de navegador ou automação da verificação huma
 
 | Área | Cobertura implementada | Pendente |
 | --- | --- | --- |
-| API | Regressão e job diagnóstico do API-001 com HTML, JUnit XML e logs | Confirmação contratual do HTTP 500 |
+| API | Job `API Tests`: regressão bloqueante e etapa diagnóstica do API-001 com HTML, JUnit XML e logs | Confirmação contratual do HTTP 500 |
 | Carrinho | Produto disponível, quantidade, preço de linha e total; aprovado localmente | Execução E2E no GitHub bloqueada por HTTP 403; variações adicionais de produto e desconto |
 | Checkout visitante | Endereço válido até Payment e cinco campos ausentes no endereço; aprovado localmente | Execução E2E no GitHub bloqueada por HTTP 403; pedido concluído e rejeição de cartão inválido não implementados |
 | Autenticação web | Cenários existentes preservados no repositório | Execução negativa em ambiente isolado |

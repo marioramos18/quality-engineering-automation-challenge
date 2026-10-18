@@ -101,15 +101,14 @@ Ao executar dentro de Docker, o endereço de loopback precisa apontar para a ins
 
 Abra `reports/api-regression/report.html`, `reports/api-quality-findings/report.html` ou `reports/e2e-report.html` no navegador depois da execução local. O relatório Cucumber incorpora screenshots de cenários que falham quando a captura é possível; erros de captura são registrados sem substituir a falha original. Logs e JUnit XML também são gerados para os jobs de API. A pasta `reports/` está ignorada pelo Git.
 
-O workflow `.github/workflows/quality.yml` roda em `push` para `main`, `pull_request` e manualmente em `workflow_dispatch`. Na aba **Actions**, abra uma execução e baixe os artifacts `api-regression-reports`, `api-quality-findings-reports` e `e2e-safe-reports`.
+O workflow `.github/workflows/quality.yml` roda em `push` para `main`, `pull_request` e manualmente em `workflow_dispatch`. Na aba **Actions**, abra uma execução e baixe os artifacts `api-tests-reports` (pastas `api-regression/` e `api-quality-findings/`) e `e2e-safe-reports`.
 
 | Job | Execução | Política de falha |
 | --- | --- | --- |
-| API Regression | Ruff e Pytest, excluindo `quality_finding` | Falha bloqueia o job |
-| API Quality Findings | Executa somente `test_post_rejects_missing_firstname` | Mantém o resultado FAILED e seus relatórios; `continue-on-error` impede que o achado conhecido bloqueie os outros jobs |
+| API Tests | Ruff e 22 testes de regressão; etapa diagnóstica separada para `test_post_rejects_missing_firstname` | Ruff e regressão bloqueiam o job; `continue-on-error` vale somente para a etapa diagnóstica. O resumo da execução mostra seu `outcome` original, inclusive `failure` |
 | E2E Safe | Imagem Docker existente, somente `@checkout-safe` | Falha bloqueia o job |
 
-Os jobs são independentes. A separação permite distinguir regressões dos cenários seguros do diagnóstico API-001, sem transformar uma falha conhecida em PASS, XFAIL ou SKIP.
+Os dois jobs são independentes. Dentro de `API Tests`, o API-001 mantém sua assertion, o código de saída real do Pytest (atualmente FAILED) e relatório próprio. O `continue-on-error` da etapa permite concluir a regressão sem apresentar o achado como teste aprovado; o resultado original é registrado no `GITHUB_STEP_SUMMARY`. Nenhum teste usa XFAIL ou SKIP para esse achado.
 
 ## Limitações da execução E2E no GitHub Actions
 
