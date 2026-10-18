@@ -6,6 +6,8 @@ A regressão API reúne verificações de contrato, autenticação, autorizaçã
 
 No job E2E, a tag `@checkout-safe` seleciona carrinho, checkout visitante até Payment e bloqueio de endereço incompleto. Esses cenários foram implementados para exercitar transições e valores visíveis sem concluir pedidos. Cenários de login negativo não participam do CI porque usam contas de demonstração compartilhadas.
 
+Os cenários `@login-negative` só podem começar quando `E2E_ALLOW_NEGATIVE_AUTH=1` e `WEB_BASE_URL` aponta para loopback. O hook rejeita o destino público antes de iniciar o navegador e bloqueia requisições externas durante esses cenários, inclusive redirecionamentos. Para reproduzi-los, use uma instância Toolshop própria, autorizada e com conta de teste isolada, conforme o comando do [README](../README.md#login-negativo-em-ambiente-isolado). A restrição produz falha explícita; não usa SKIP ou XFAIL.
+
 ## Isolamento e dados
 
 Cada cenário Cucumber inicia e encerra seu próprio contexto de navegador. Os testes de checkout usam dados sintéticos e email `example.com`, não usam conta demonstrativa e não acionam `data-test="finish"`. Os testes API geram payloads independentes; a fixture de reserva criada tenta remover o registro após o cenário. O job de achados mantém a limpeza defensiva já existente no teste.
@@ -30,6 +32,8 @@ Não usamos proxies, disfarces de navegador ou automação da verificação huma
 | Carrinho | Produto disponível, quantidade, preço de linha e total; aprovado localmente | Execução E2E no GitHub bloqueada por HTTP 403; variações adicionais de produto e desconto |
 | Checkout visitante | Endereço válido até Payment e cinco campos ausentes no endereço; aprovado localmente | Execução E2E no GitHub bloqueada por HTTP 403; pedido concluído e rejeição de cartão inválido não implementados |
 | Autenticação web | Cenários existentes preservados no repositório | Execução negativa em ambiente isolado |
+
+A [comparação de ShopDemo e Maison](ecommerce-alternatives.md) não levou à migração: a primeira depende de licença explícita e prova de CI; a segunda confirma compras locais, mas não rejeita o número de cartão inválido e não oferece os campos/etapas do checkout visitante atual. Portanto, continuam obrigatórios e **não atendidos**: E2E aprovado no GitHub Actions, checkout concluído automatizado e rejeição de cartão inválido automatizada. Uma alternativa só deve substituir o Toolshop após demonstrar ganho de cobertura reproduzível sem apagar essas lacunas.
 
 ## Checkout completo em ambiente controlado
 

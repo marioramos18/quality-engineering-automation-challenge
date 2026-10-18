@@ -9,15 +9,17 @@ Automação de API e navegador para duas aplicações públicas de demonstraçã
 | `api/` | Python 3.12, Pytest, cliente HTTP do Playwright | Contratos e cenários negativos do Restful Booker |
 | `web/` | TypeScript, Cucumber.js, Playwright, Page Objects | Carrinho e checkout visitante até Payment; outros cenários ficam fora do CI seguro |
 | `mobile/` e `performance/` | Appium e k6 | Diretórios reservados; sem jobs neste workflow |
-| `docs/` | Markdown | [Estratégia](docs/test-strategy.md), [achados](docs/findings.md) e [investigação do checkout](docs/checkout-investigation.md) |
+| `docs/` | Markdown | [Estratégia](docs/test-strategy.md), [achados](docs/findings.md), [investigação do checkout](docs/checkout-investigation.md) e [alternativas de e-commerce](docs/ecommerce-alternatives.md) |
 
 As fixtures em `api/conftest.py` criam dados de reserva e removem as reservas geradas. No navegador, `E2EWorld` e os hooks abrem um contexto novo por cenário; os Page Objects concentram os seletores. O checkout automatizado termina na tela de pagamento, sem acionar `finish`.
 
 ## Pré-requisitos
 
 - Para API local: Python 3.12 e [uv](https://docs.astral.sh/uv/).
-- Para E2E local: Docker com daemon ativo. A imagem Playwright usada está em `web/Dockerfile`; o primeiro build baixa a imagem e instala as dependências de `web/package-lock.json`.
+- Para E2E local: Docker com daemon ativo. A imagem `mcr.microsoft.com/playwright:v1.64.1-noble` está fixada em `web/Dockerfile`; o primeiro build baixa a imagem e instala as dependências de `web/package-lock.json`.
 - Acesso de rede a `restful-booker.herokuapp.com` e `practicesoftwaretesting.com`. Nenhuma credencial privada é exigida para os comandos seguros.
+
+As versões instaladas pelo lockfile web são Playwright **1.64.1**, Cucumber.js **13.3.0**, TypeScript **7.0.2** e `tsx` **4.23.15**. A API exige Python **3.12**; as demais dependências Python são resolvidas por `uv.lock`. Não é necessário instalar Node.js no host para a execução E2E com Docker.
 
 Execute os comandos na raiz do repositório. Para apontar a API para outro ambiente, configure `BOOKER_BASE_URL`; o padrão está em `api/conftest.py`.
 
@@ -59,9 +61,23 @@ A tag `@checkout-safe` inclui carrinho, avanço como visitante até Payment e va
 
 Para conferir os tipos TypeScript sem usar Docker: `cd web && npm ci && npx tsc --noEmit`.
 
+### Login negativo em ambiente isolado
+
+Os cenários `@login-negative` **não devem ser executados contra a instância pública**. O hook exige `E2E_ALLOW_NEGATIVE_AUTH=1` **e** `WEB_BASE_URL` apontando para `localhost`, `127.0.0.1` ou `::1`; também bloqueia requisições externas durante esses cenários. A variável sozinha não libera o destino público: a execução falha antes de abrir o navegador. Isso é uma restrição deliberada, não um SKIP ou XFAIL.
+
+Inicie primeiro uma instância Toolshop própria e autorizada, acessível por loopback a partir do processo de teste, com dados isolados e a conta do exemplo presente nessa instância. Depois, com as dependências e o Chromium local instalados, execute em `web/` (substitua `<porta>` pela porta local):
+
+```bash
+WEB_BASE_URL=http://127.0.0.1:<porta> \
+E2E_ALLOW_NEGATIVE_AUTH=1 \
+npm test -- --tags @login-negative
+```
+
+Ao executar dentro de Docker, o endereço de loopback precisa apontar para a instância isolada **do ponto de vista do container**; uma variável de ambiente não torna um destino público seguro. Não use esses cenários na instância compartilhada nem no job `E2E Safe`.
+
 ## Relatórios e GitHub Actions
 
-Abra `reports/api-regression/report.html`, `reports/api-quality-findings/report.html` ou `reports/e2e-report.html` no navegador depois da execução local. O relatório Cucumber incorpora screenshots de cenários que falham, capturadas pelo hook `After`. Logs e JUnit XML também são gerados para os jobs de API. A pasta `reports/` está ignorada pelo Git.
+Abra `reports/api-regression/report.html`, `reports/api-quality-findings/report.html` ou `reports/e2e-report.html` no navegador depois da execução local. O relatório Cucumber incorpora screenshots de cenários que falham quando a captura é possível; erros de captura são registrados sem substituir a falha original. Logs e JUnit XML também são gerados para os jobs de API. A pasta `reports/` está ignorada pelo Git.
 
 O workflow `.github/workflows/quality.yml` roda em `push` para `main`, `pull_request` e manualmente em `workflow_dispatch`. Na aba **Actions**, abra uma execução e baixe os artifacts `api-regression-reports`, `api-quality-findings-reports` e `e2e-safe-reports`.
 
@@ -86,3 +102,5 @@ Não adotamos proxies, técnicas de ocultação do navegador nem automação da 
 Restful Booker e Toolshop são serviços públicos compartilhados; disponibilidade, dados e comportamento podem mudar durante a execução. O [achado API-001](docs/findings.md) registra HTTP 500 ao criar uma reserva sem `firstname`; a classificação contratual permanece em investigação.
 
 **Checkout concluído e rejeição de cartão inválido não foram automatizados.** A conclusão cria uma fatura e pode acionar email e atualização de estoque. Para cobrir esses requisitos, use uma instância local controlada do Toolshop, com dados e caixa de email isolados, conforme a [estratégia de testes](docs/test-strategy.md).
+
+A [comparação de aplicações alternativas](docs/ecommerce-alternatives.md) concluiu por **não migrar agora**: a ShopDemo ainda não tem licença explícita identificada nem execução comprovada no CI; a Maison confirmou pedido local, mas aceitou um cartão inválido e não reproduz o checkout visitante atual. Essa investigação não resolve o bloqueio do Cloudflare no GitHub Actions nem os dois requisitos de checkout pendentes.
