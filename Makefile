@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help test-api test-e2e test-all test-api-finding typecheck
+.PHONY: help test-api test-e2e test-all test-api-finding typecheck test-load-smoke test-load
 
 HOST_UID := $(shell id -u)
 HOST_GID := $(shell id -g)
@@ -11,7 +11,9 @@ help:
 	  'make test-e2e          Checkout seguro no Docker (@checkout-safe)' \
 	  'make test-all          Executa API e E2E e informa ambos os resultados' \
 	  'make test-api-finding  Executa API-001 com resultado real' \
-	  'make typecheck         Instala dependências web e valida TypeScript'
+	  'make typecheck         Instala dependências web e valida TypeScript' \
+	  'make test-load-smoke   API mock local: 10 VUs por 15 segundos' \
+	  'make test-load         API mock local: 500 VUs por 5 minutos'
 
 test-api:
 	uv sync --locked --dev
@@ -48,3 +50,9 @@ test-api-finding:
 typecheck:
 	cd web && npm ci --no-audit --no-fund
 	cd web && npx tsc --noEmit
+
+test-load-smoke:
+	bash performance/run-load.sh smoke
+
+test-load:
+	bash performance/run-load.sh load

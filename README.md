@@ -1,16 +1,17 @@
 # Quality Engineering Automation Challenge
 
-Automação de API e navegador para duas aplicações públicas de demonstração. Os resultados da execução automática ficam na aba **Actions** do GitHub, no workflow **Quality**. Cada execução publica relatórios como artifacts ao final de cada job.
+Automação de API e navegador para duas aplicações públicas de demonstração, com um desafio opcional de performance contra uma API mock local. Os resultados da execução automática ficam na aba **Actions** do GitHub, no workflow **Quality**. Cada execução publica relatórios como artifacts ao final de cada job.
 
 ## Início rápido
 
-Na raiz do repositório, instale **GNU Make**, **Python 3.12**, **uv** e **Docker** com o daemon ativo. `make typecheck` também requer **Node.js e npm** no host; os testes E2E usam o Node.js da imagem Docker. Os comandos seguros precisam de acesso às APIs públicas, mas não de credenciais privadas.
+Na raiz do repositório, instale **GNU Make**, **Python 3.12**, **uv** e **Docker** com o daemon ativo. `make typecheck` também requer **Node.js e npm** no host; os testes E2E usam o Node.js da imagem Docker. Os testes API/E2E seguros precisam de acesso às aplicações públicas, mas não de credenciais privadas. O teste de performance usa apenas containers locais.
 
 ```bash
 make help
 make test-api
 make test-e2e
 make typecheck
+make test-load-smoke
 ```
 
 `make test-all` executa API e E2E, mostra os dois códigos de saída e falha se qualquer um falhar. `make test-api-finding` executa separadamente o achado API-001 e preserva seu resultado FAILED. O conjunto padrão E2E executa **somente `@checkout-safe`**; não inclui tentativas de senha incorreta nem finaliza compras.
@@ -23,8 +24,9 @@ Os relatórios locais ficam em `reports/api-regression/report.html`, `reports/ap
 | --- | --- | --- |
 | `api/` | Python 3.12, Pytest, cliente HTTP do Playwright | Contratos e cenários negativos do Restful Booker |
 | `web/` | TypeScript, Cucumber.js, Playwright, Page Objects | Carrinho e checkout visitante até Payment; outros cenários ficam fora do CI seguro |
-| `mobile/` e `performance/` | Appium e k6 | Diretórios reservados; sem jobs neste workflow |
-| `docs/` | Markdown | [Estratégia](docs/test-strategy.md), [achados](docs/findings.md), [investigação do checkout](docs/checkout-investigation.md) e [alternativas de e-commerce](docs/ecommerce-alternatives.md) |
+| `mobile/` | Appium | Diretório reservado; sem job neste workflow |
+| `performance/` | Node.js nativo, Docker Compose e k6 | API mock isolada e cenário opcional de 500 VUs por 5 minutos; sem job neste workflow |
+| `docs/` | Markdown | [Estratégia](docs/test-strategy.md), [achados](docs/findings.md), [investigação do checkout](docs/checkout-investigation.md), [alternativas de e-commerce](docs/ecommerce-alternatives.md) e [resultados de performance](docs/performance-results.md) |
 
 As fixtures em `api/conftest.py` criam dados de reserva e removem as reservas geradas. No navegador, `E2EWorld` e os hooks abrem um contexto novo por cenário; os Page Objects concentram os seletores. O checkout automatizado termina na tela de pagamento, sem acionar `finish`.
 
@@ -32,6 +34,7 @@ As fixtures em `api/conftest.py` criam dados de reserva e removem as reservas ge
 
 - Para API local: Python 3.12 e [uv](https://docs.astral.sh/uv/).
 - Para E2E local: Docker com daemon ativo. A imagem `mcr.microsoft.com/playwright:v1.64.1-noble` está fixada em `web/Dockerfile`; o primeiro build baixa a imagem e instala as dependências de `web/package-lock.json`.
+- Para performance: Docker com o plugin `docker compose`. Não é necessário instalar k6 nem Node.js no host; as imagens são baixadas na primeira execução.
 - Acesso de rede a `restful-booker.herokuapp.com` e `practicesoftwaretesting.com`. Nenhuma credencial privada é exigida para os comandos seguros.
 
 As versões instaladas pelo lockfile web são Playwright **1.64.1**, Cucumber.js **13.3.0**, TypeScript **7.0.2** e `tsx` **4.23.15**. A API exige Python **3.12**; as demais dependências Python são resolvidas por `uv.lock`. Não é necessário instalar Node.js no host para a execução E2E com Docker.
@@ -96,6 +99,22 @@ npm test -- --tags @login-negative
 ```
 
 Ao executar dentro de Docker, o endereço de loopback precisa apontar para a instância isolada **do ponto de vista do container**; uma variável de ambiente não torna um destino público seguro. Não use esses cenários na instância compartilhada nem no job `E2E Safe`.
+
+## Performance local isolada
+
+O cenário em `performance/load-test.js` usa o executor `constant-vus`: **500 VUs por 5 minutos** no perfil completo. Cada VU faz uma requisição por iteração e pausa por 1 segundo. Aproximadamente 80% das requisições leem itens fixos por `GET /api/items/:id`; 20% criam registros sintéticos em memória por `POST /api/records`. O script verifica status HTTP e campos essenciais do JSON, sem enviar dados pessoais. A API mock e o k6 ficam em uma rede Docker `internal`, sem portas publicadas no host; o teste não acessa Restful Booker, Toolshop ou outro serviço público. Essa escolha usa o [executor `constant-vus` do k6](https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/constant-vus/) e uma [rede interna do Compose](https://docs.docker.com/compose/how-tos/networking/#internal-networks).
+
+Na raiz do projeto, execute o smoke validado; o script inicia a API, aguarda o health check, executa o k6 e remove os containers e a rede inclusive se o teste falhar:
+
+```bash
+make test-load-smoke
+```
+
+O smoke usa **10 VUs por 15 segundos**. Somente para smoke ou diagnóstico, é possível ajustar `PERF_VUS` e `PERF_DURATION`, por exemplo: `PERF_VUS=20 PERF_DURATION=30s make test-load-smoke`. O perfil completo ignora essas variáveis e mantém 500 VUs por 5 minutos: `make test-load`. **O perfil completo ainda não foi executado; aguarda revisão da implementação.**
+
+Os resultados ficam em `reports/performance/smoke-summary.json` e `smoke-summary.txt` ou, após o perfil completo, `load-summary.json` e `load-summary.txt`. O resumo também aparece no console. O [registro dos resultados e roteiro de análise](docs/performance-results.md) separa números medidos de pendências.
+
+Os thresholds de referência da API mock são taxa de erro HTTP **< 1%**, taxa de erro de contrato **< 1%** e latência HTTP **p95 < 500 ms**. Eles fazem o k6 retornar erro quando falham, mas **não são SLAs reais**. Gerador e API dividem a mesma máquina e recursos de Docker; CPU, memória, disco e agendamento local influenciam a vazão e a latência. O smoke confirma o funcionamento do cenário, não a capacidade de produção nem o resultado esperado para 500 VUs.
 
 ## Relatórios e GitHub Actions
 

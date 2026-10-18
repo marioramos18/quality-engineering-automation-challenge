@@ -1,0 +1,26 @@
+{
+  "profile": "load",
+  "executor": "constant-vus",
+  "configuredVus": 500,
+  "achievedVus": 500,
+  "duration": "5m",
+  "requests": 150000,
+  "requestsPerSecond": 498.60738443131714,
+  "readRequests": 120000,
+  "writeRequests": 30000,
+  "httpErrorRate": 0,
+  "contractErrorRate": 0,
+  "latencyMs": {
+    "average": 1.5793797289399976,
+    "p90": 2.5623723000000003,
+    "p95": 3.7679842999999957,
+    "p99": 11.159953840000012
+  },
+  "iterations": 150000,
+  "thresholds": {
+    "http_req_failed: rate<0.01": true,
+    "contract_errors: rate<0.01": true,
+    "http_req_duration: p(95)<500": true
+  },
+  "thresholdsPassed": true
+}
