@@ -1,0 +1,100 @@
+name: Mobile Android POC
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-poc:
+    name: APK and emulator smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      APK_PATH: ${{ runner.temp }}/android.wdio.native.app.v2.2.0.apk
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Check and enable KVM access
+        run: |
+          if [[ ! -c /dev/kvm ]]; then
+            echo "::error::/dev/kvm is unavailable on this runner; the Android emulator needs KVM acceleration."
+            exit 1
+          fi
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' |
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          if [[ ! -r /dev/kvm || ! -w /dev/kvm ]]; then
+            echo "::error::/dev/kvm exists but is not readable and writable by this runner."
+            exit 1
+          fi
+          ls -l /dev/kvm
+
+      - name: Download and verify official Android APK v2.2.0
+        run: |
+          curl --fail --location --show-error --silent \
+            --connect-timeout 15 --max-time 300 \
+            --output "$APK_PATH" \
+            https://github.com/webdriverio/native-demo-app/releases/download/v2.2.0/android.wdio.native.app.v2.2.0.apk
+          printf '%s  %s\n' \
+            'fe1d605ce099c73d93f33e5cbcb0df0bea437ce57aaaaf156b3b0fa1ca54931d' \
+            "$APK_PATH" | sha256sum --check --status
+          echo 'Official APK SHA-256 verified.'
+
+      - name: Boot emulator and verify app launch
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          script: |
+            mkdir -p reports/mobile
+            adb devices -l | tee reports/mobile/adb-devices.txt
+            adb shell getprop ro.build.version.sdk | tee reports/mobile/android-api-level.txt
+            adb install -r "$APK_PATH"
+            adb shell pm path com.wdiodemoapp | tee reports/mobile/package-path.txt
+            if ! grep -q '^package:' reports/mobile/package-path.txt; then
+              echo '::error::com.wdiodemoapp was not installed.'
+              exit 1
+            fi
+
+            adb shell am start -W -n com.wdiodemoapp/.MainActivity |
+              tee reports/mobile/activity-start.txt
+
+            home_found=0
+            for attempt in {1..20}; do
+              if adb shell uiautomator dump /sdcard/window.xml >/dev/null 2>&1; then
+                adb pull /sdcard/window.xml reports/mobile/home-window.xml >/dev/null
+                if grep -Fq 'content-desc="Home-screen"' reports/mobile/home-window.xml ||
+                   grep -Fq 'Demo app for the appium-boilerplate' reports/mobile/home-window.xml; then
+                  home_found=1
+                  break
+                fi
+              fi
+            done
+
+            adb exec-out screencap -p > reports/mobile/home.png
+            adb shell dumpsys activity activities > reports/mobile/activities.txt
+            if [[ "$home_found" -ne 1 ]]; then
+              echo '::error::The app launched, but the expected Home UI was not found; inspect the screenshot and UI dump artifact.'
+              exit 1
+            fi
+            echo 'Home UI found in the Android hierarchy; screenshot captured.'
+
+      - name: Upload Android evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-android-poc
+          path: reports/mobile/
+          if-no-files-found: warn
