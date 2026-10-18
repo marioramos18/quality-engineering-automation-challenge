@@ -2,6 +2,21 @@
 
 Automação de API e navegador para duas aplicações públicas de demonstração. Os resultados da execução automática ficam na aba **Actions** do GitHub, no workflow **Quality**. Cada execução publica relatórios como artifacts ao final de cada job.
 
+## Início rápido
+
+Na raiz do repositório, instale **GNU Make**, **Python 3.12**, **uv** e **Docker** com o daemon ativo. `make typecheck` também requer **Node.js e npm** no host; os testes E2E usam o Node.js da imagem Docker. Os comandos seguros precisam de acesso às APIs públicas, mas não de credenciais privadas.
+
+```bash
+make help
+make test-api
+make test-e2e
+make typecheck
+```
+
+`make test-all` executa API e E2E, mostra os dois códigos de saída e falha se qualquer um falhar. `make test-api-finding` executa separadamente o achado API-001 e preserva seu resultado FAILED. O conjunto padrão E2E executa **somente `@checkout-safe`**; não inclui tentativas de senha incorreta nem finaliza compras.
+
+Os relatórios locais ficam em `reports/api-regression/report.html`, `reports/api-quality-findings/report.html` e `reports/e2e-report.html`; os diagnósticos do catálogo ficam em `reports/catalog-diagnostics/`. Os comandos completos sem Make para [API](#executar-a-api), [E2E](#executar-o-e2e-seguro) e typecheck aparecem abaixo. No GitHub Actions, os jobs usam os comandos do [workflow](.github/workflows/quality.yml) e publicam artifacts; o resultado local não substitui o resultado do CI. O E2E no CI permanece bloqueado por HTTP 403 do Cloudflare, e compra concluída e rejeição de cartão inválido continuam fora da cobertura implementada.
+
 ## Arquitetura
 
 | Módulo | Tecnologia | Escopo atual |
@@ -21,7 +36,7 @@ As fixtures em `api/conftest.py` criam dados de reserva e removem as reservas ge
 
 As versões instaladas pelo lockfile web são Playwright **1.64.1**, Cucumber.js **13.3.0**, TypeScript **7.0.2** e `tsx` **4.23.15**. A API exige Python **3.12**; as demais dependências Python são resolvidas por `uv.lock`. Não é necessário instalar Node.js no host para a execução E2E com Docker.
 
-Execute os comandos na raiz do repositório. Para apontar a API para outro ambiente, configure `BOOKER_BASE_URL`; o padrão está em `api/conftest.py`.
+Os blocos a seguir são as alternativas completas para quem não tem Make. Execute os comandos na raiz do repositório. Para apontar a API para outro ambiente, configure `BOOKER_BASE_URL`; o padrão está em `api/conftest.py`. Para reproduzir `make test-all` sem Make, execute os blocos de API e E2E separadamente e confira o código de saída de cada um.
 
 ## Executar a API
 
@@ -37,6 +52,7 @@ uv run --locked pytest api/tests -m "not quality_finding" -v \
 O achado [API-001](docs/findings.md) é executado separadamente para preservar o resultado da assertion original:
 
 ```bash
+uv sync --locked --dev
 mkdir -p reports/api-quality-findings
 uv run --locked pytest \
   api/tests/test_required_fields_negative.py::test_post_rejects_missing_firstname -v \
@@ -52,6 +68,7 @@ Esse comando deve sair com código diferente de zero enquanto a API retornar HTT
 docker build -t quality-challenge-e2e:local web
 mkdir -p reports
 docker run --rm --ipc=host \
+  --user "$(id -u):$(id -g)" -e HOME=/tmp \
   -v "$PWD/reports:/workspace/reports" \
   quality-challenge-e2e:local \
   npm test -- --tags @checkout-safe
@@ -59,7 +76,12 @@ docker run --rm --ipc=host \
 
 A tag `@checkout-safe` inclui carrinho, avanço como visitante até Payment e validação de endereço incompleto. Ela não inclui os cenários de login negativo em contas compartilhadas. Os testes de checkout **não finalizam pedidos**.
 
-Para conferir os tipos TypeScript sem usar Docker: `cd web && npm ci && npx tsc --noEmit`.
+Para conferir os tipos TypeScript sem Make ou Docker, execute na raiz do projeto:
+
+```bash
+cd web && npm ci --no-audit --no-fund
+npx tsc --noEmit
+```
 
 ### Login negativo em ambiente isolado
 
