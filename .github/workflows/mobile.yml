@@ -1,6 +1,10 @@
-name: Mobile Android POC
+name: Mobile Android Tests
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -8,7 +12,7 @@ permissions:
 
 jobs:
   android-poc:
-    name: Android POC and Appium tests
+    name: Android Appium tests
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
