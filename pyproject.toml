@@ -19,3 +19,8 @@ dev = [
     "pytest-playwright>=0.10.0",
     "ruff>=0.17.1",
 ]
+mobile = [
+    "Appium-Python-Client==5.3.1",
+    "pytest==9.1.1",
+    "pytest-html==4.2.0",
+]

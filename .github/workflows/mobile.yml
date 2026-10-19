@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   android-poc:
-    name: APK and emulator smoke
+    name: Android POC and Appium tests
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
@@ -21,6 +21,28 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.2"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install locked mobile Python dependencies
+        run: uv sync --locked --only-group mobile
+
+      - name: Install Appium 3.7.0 and UiAutomator2 8.7.0
+        run: |
+          npm install --global appium@3.7.0 --no-audit --no-fund
+          appium driver install uiautomator2@8.7.0
+          appium --version
+          appium driver list --installed
 
       - name: Enable KVM access
         run: |
@@ -61,7 +83,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          script: bash .github/scripts/mobile-smoke.sh
+          script: bash .github/scripts/mobile-ci.sh
 
       - name: Upload Android evidence
         if: always()

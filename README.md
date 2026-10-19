@@ -1,6 +1,6 @@
 # Quality Engineering Automation Challenge
 
-Automação de API e navegador para duas aplicações públicas de demonstração, com um desafio opcional de performance contra uma API mock local. Os resultados da execução automática ficam na aba **Actions** do GitHub: o workflow **Quality** executa API e E2E, e **Performance** executa k6 somente quando acionado manualmente. Cada execução publica os relatórios disponíveis como artifacts.
+Automação de API, navegador e Android para aplicações de demonstração, com um desafio opcional de performance contra uma API mock local. Os resultados ficam na aba **Actions** do GitHub: **Quality** executa API e E2E; **Performance** e **Mobile Android POC** são workflows manuais. Cada execução publica os relatórios disponíveis como artifacts.
 
 ## Início rápido
 
@@ -24,7 +24,7 @@ Os relatórios locais ficam em `reports/api-regression/report.html`, `reports/ap
 | --- | --- | --- |
 | `api/` | Python 3.12, Pytest, cliente HTTP do Playwright | Contratos e cenários negativos do Restful Booker |
 | `web/` | TypeScript, Cucumber.js, Playwright, Page Objects | Carrinho e checkout visitante até Payment; outros cenários ficam fora do CI seguro |
-| `mobile/` | Appium | Diretório reservado; sem job neste workflow |
+| `mobile/` | Python, Pytest, Appium e Page Objects | Login simulado, navegação e gravação local em SQLite; workflow Android manual |
 | `performance/` | Node.js nativo, Docker Compose e k6 | API mock isolada e cenário opcional de 500 VUs por 5 minutos; workflow manual separado |
 | `docs/` | Markdown | [Estratégia](docs/test-strategy.md), [achados](docs/findings.md), [investigação do checkout](docs/checkout-investigation.md), [alternativas de e-commerce](docs/ecommerce-alternatives.md) e [resultados de performance](docs/performance-results.md) |
 
@@ -35,6 +35,7 @@ As fixtures em `api/conftest.py` criam dados de reserva e removem as reservas ge
 - Para API local: Python 3.12 e [uv](https://docs.astral.sh/uv/).
 - Para E2E local: Docker com daemon ativo. A imagem `mcr.microsoft.com/playwright:v1.64.1-noble` está fixada em `web/Dockerfile`; o primeiro build baixa a imagem e instala as dependências de `web/package-lock.json`.
 - Para performance: Docker com o plugin `docker compose`. Não é necessário instalar k6 nem Node.js no host; as imagens são baixadas na primeira execução.
+- Para mobile: execute o workflow manual no GitHub Actions. O runner instala Java, Node.js, Python, Appium e o SDK Android; não é preciso instalar o SDK no computador local.
 - Acesso de rede a `restful-booker.herokuapp.com` e `practicesoftwaretesting.com`. Nenhuma credencial privada é exigida para os comandos seguros.
 
 As versões instaladas pelo lockfile web são Playwright **1.64.1**, Cucumber.js **13.3.0**, TypeScript **7.0.2** e `tsx` **4.23.15**. A API exige Python **3.12**; as demais dependências Python são resolvidas por `uv.lock`. Não é necessário instalar Node.js no host para a execução E2E com Docker.
@@ -128,6 +129,14 @@ O workflow `.github/workflows/quality.yml` roda em `push` para `main`, `pull_req
 | E2E Safe | Imagem Docker existente, somente `@checkout-safe` | Falha bloqueia o job |
 
 Os dois jobs são independentes. Dentro de `API Tests`, o API-001 mantém sua assertion, o código de saída real do Pytest (atualmente FAILED) e relatório próprio. O `continue-on-error` da etapa permite concluir a regressão sem apresentar o achado como teste aprovado; o resultado original é registrado no `GITHUB_STEP_SUMMARY`. Nenhum teste usa XFAIL ou SKIP para esse achado.
+
+### Mobile Android manual no GitHub Actions
+
+Abra **Actions → Mobile Android POC → Run workflow** e escolha a branch com os testes mobile. O workflow usa `ubuntu-24.04`, Android API 35, o APK oficial v2.2.0 com checksum fixado, Appium 3.7.0, UiAutomator2 8.7.0 e as dependências Python do grupo `mobile` em `uv.lock`. Primeiro repete a POC de instalação e abertura do aplicativo; depois inicia o servidor Appium e executa os dois testes Pytest. Não são necessárias credenciais privadas.
+
+O primeiro teste usa `mobile.qa@example.com` e uma senha sintética. O aplicativo valida apenas o formato e exibe um alerta de sucesso **simulado**, sem autenticar em backend. O segundo teste grava um valor único na seção de armazenamento persistido da tela Data Management, compara o valor exibido, reinicia o processo do aplicativo e compara o valor recuperado. Nessa versão, a seção usa SQLite local ao aplicativo; o teste não altera serviços externos.
+
+Ao terminar, baixe o artifact `mobile-android-poc` em **Actions**. Os arquivos são gerados em `reports/mobile/`: `report.html`, `junit.xml`, `pytest.log`, `appium.log`, hierarquias XML das telas, screenshots/XML de falhas e as evidências da POC. A POC #6 confirmou KVM, emulador, instalação do APK e tela Home. **Os dois testes funcionais ainda não foram executados no GitHub**; os locators de Login, Forms e Data Management precisam ser confirmados no artifact da primeira execução. Se falharem, consulte o XML, os screenshots e os logs antes de classificá-los como defeitos do aplicativo.
 
 ### Performance manual no GitHub Actions
 
