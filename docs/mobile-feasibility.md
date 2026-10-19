@@ -34,7 +34,7 @@ O [workflow mobile](../.github/workflows/mobile.yml) usa `ubuntu-24.04`, Java 17
 
 ## Execução automática, manual e evidências
 
-O workflow **Mobile Android Tests** está configurado para `push` na branch `main`, `pull_request` com destino à `main` e `workflow_dispatch`. Para iniciar manualmente, abra **Actions → Mobile Android Tests → Run workflow** e selecione a branch. Ele permanece separado de `quality.yml`. **Os novos gatilhos automáticos ainda não foram validados por uma execução real**; o resultado funcional comprovado é o da execução manual #7.
+O workflow **Mobile Android Tests** está configurado para `push` na branch `main`, `pull_request` com destino à `main` e `workflow_dispatch`. Para iniciar manualmente, abra **Actions → Mobile Android Tests → Run workflow** e selecione a branch. Ele permanece separado de `quality.yml`. A [execução automática por `push` na `main`](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/39184912606) concluiu com **2 testes PASSED** e upload das evidências. O gatilho de `pull_request` ainda não foi comprovado por uma execução observada.
 
 Em **Actions**, abra a execução e baixe o artifact `mobile-android-poc` na seção **Artifacts**. Os relatórios ficam em `reports/mobile/report.html` e `reports/mobile/junit.xml`. O diretório também contém, quando gerados, `pytest.log`, `appium.log`, screenshots, hierarquias XML e logs Android. O upload usa `if: always()`, inclusive quando o teste falha; arquivos que dependem de uma etapa não iniciada podem não existir. O HTML pode ser aberto no navegador; o XML pode ser lido por um visualizador JUnit.
 

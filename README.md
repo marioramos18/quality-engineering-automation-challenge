@@ -1,163 +1,139 @@
 # Quality Engineering Automation Challenge
 
-Automação de API, navegador e Android para aplicações de demonstração, com um desafio opcional de performance contra uma API mock local. Os resultados ficam na aba **Actions** do GitHub: **Quality** executa API e E2E; **Mobile Android Tests** executa os testes mobile automaticamente ou sob demanda; **Performance** é manual. Cada execução publica os relatórios disponíveis como artifacts.
+## Visão geral e tecnologias
+
+Monorepo de automação para API, navegador, Android e carga. A API e o E2E Web usam serviços públicos de demonstração; o mobile usa um APK de versão fixa em emulador; a carga usa somente uma API mock local. Resultados e limites de cada modalidade estão abaixo.
+
+| Modalidade | Tecnologias | Aplicação |
+| --- | --- | --- |
+| API | Python 3.12, Pytest, Playwright, Ruff | Restful Booker |
+| E2E Web | TypeScript, Cucumber.js, Playwright, Docker | Toolshop |
+| Mobile | Python, Pytest, Appium, UiAutomator2 | WebdriverIO Native Demo App v2.2.0 |
+| Performance | k6, Node.js, Docker Compose | API mock isolada |
 
 ## Início rápido
 
-Na raiz do repositório, instale **GNU Make**, **Python 3.12**, **uv** e **Docker** com o daemon ativo. `make typecheck` também requer **Node.js e npm** no host; os testes E2E usam o Node.js da imagem Docker. Os testes API/E2E seguros precisam de acesso às aplicações públicas, mas não de credenciais privadas. O teste de performance usa apenas containers locais.
+Instale **Git, GNU Make, Python 3.12, [uv](https://docs.astral.sh/uv/) e Docker com Compose**. Para executar E2E Web e Performance, o Docker Engine deve estar iniciado e o usuário precisa ter permissão para executar comandos Docker. Os comandos API/E2E seguros precisam de acesso às aplicações públicas, mas não de credenciais privadas. O mobile roda no GitHub Actions, sem exigir Android SDK ou emulador no computador local.
 
 ```bash
+git clone https://github.com/marioramos18/quality-engineering-automation-challenge.git
+cd quality-engineering-automation-challenge
+
 make help
 make test-api
 make test-e2e
-make typecheck
 make test-load-smoke
 ```
 
-`make test-all` executa API e E2E, mostra os dois códigos de saída e falha se qualquer um falhar. `make test-api-finding` executa separadamente o achado API-001 e preserva seu resultado FAILED. O conjunto padrão E2E executa **somente `@checkout-safe`**; não inclui tentativas de senha incorreta nem finaliza compras.
+`make test-all` executa **somente a regressão API e o E2E Web seguro**; não inclui mobile nem performance. O E2E pode falhar em ambientes bloqueados pelo Cloudflare. Use `make typecheck` para TypeScript; esse alvo requer Node.js e npm no host.
 
-Os relatórios locais ficam em `reports/api-regression/report.html`, `reports/api-quality-findings/report.html`, `reports/e2e-report.html` e `reports/performance/`; os diagnósticos do catálogo ficam em `reports/catalog-diagnostics/`. Os comandos completos sem Make para [API](#executar-a-api), [E2E](#executar-o-e2e-seguro) e typecheck aparecem abaixo. No GitHub Actions, os jobs usam os comandos do [workflow Quality](.github/workflows/quality.yml) e do [workflow Performance](.github/workflows/performance.yml) e publicam artifacts; o resultado local não substitui o resultado do runner. O E2E no CI permanece bloqueado por HTTP 403 do Cloudflare, e compra concluída e rejeição de cartão inválido continuam fora da cobertura implementada.
+## Cobertura e resultados comprovados
 
-## Arquitetura
-
-| Módulo | Tecnologia | Escopo atual |
+| Área | Cobertura e resultado | Evidência |
 | --- | --- | --- |
-| `api/` | Python 3.12, Pytest, cliente HTTP do Playwright | Contratos e cenários negativos do Restful Booker |
-| `web/` | TypeScript, Cucumber.js, Playwright, Page Objects | Carrinho e checkout visitante até Payment; outros cenários ficam fora do CI seguro |
-| `mobile/` | Python, Pytest, Appium e Page Objects | Login simulado, navegação e persistência local; workflow Android independente |
-| `performance/` | Node.js nativo, Docker Compose e k6 | API mock isolada e cenário opcional de 500 VUs por 5 minutos; workflow manual separado |
-| `docs/` | Markdown | [Estratégia](docs/test-strategy.md), [achados](docs/findings.md), [investigação do checkout](docs/checkout-investigation.md), [alternativas de e-commerce](docs/ecommerce-alternatives.md) e [resultados de performance](docs/performance-results.md) |
+| API | 22 testes de regressão aprovados; o API-001 continua **FAILED** em diagnóstico separado | [Execução Quality](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/39184912545), [achado](docs/findings.md) |
+| E2E Web | 7 cenários e 41 passos `@checkout-safe` aprovados localmente; os 7 falharam no GitHub antes do catálogo por HTTP 403 do Cloudflare | [Estratégia e diagnósticos](docs/test-strategy.md), [execução Quality](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/39184912545) |
+| Mobile | 2 testes Appium aprovados no GitHub: login simulado com navegação e persistência local após reinício do aplicativo | [Execução manual #7](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/39183629397), [execução automática por push](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/39184912606) |
+| Performance | Carga local de 500 VUs por 5 min: 150.000 requisições, 0% de erros e 3 thresholds aprovados. Perfis `smoke` e `load` também concluíram no GitHub | [Resumo local versionado](docs/evidence/k6-load-summary.json), [smoke no GitHub](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/39169917890), [load no GitHub](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/39170697301) |
 
-As fixtures em `api/conftest.py` criam dados de reserva e removem as reservas geradas. No navegador, `E2EWorld` e os hooks abrem um contexto novo por cenário; os Page Objects concentram os seletores. O checkout automatizado termina na tela de pagamento, sem acionar `finish`.
+Na execução mobile manual #7, os dois testes passaram em **86,48 s** e o job levou cerca de **3 min 56 s**. A execução automática por `push` também passou com **2 testes aprovados**. O login do aplicativo é demonstrativo: o sucesso é simulado na interface, sem autenticação em backend. Os valores de performance são da API mock e não representam um benchmark de produção.
 
-## Pré-requisitos
+## Como executar os testes
 
-- Para API local: Python 3.12 e [uv](https://docs.astral.sh/uv/).
-- Para E2E local: Docker com daemon ativo. A imagem `mcr.microsoft.com/playwright:v1.64.1-noble` está fixada em `web/Dockerfile`; o primeiro build baixa a imagem e instala as dependências de `web/package-lock.json`.
-- Para performance: Docker com o plugin `docker compose`. Não é necessário instalar k6 nem Node.js no host; as imagens são baixadas na primeira execução.
-- Para mobile: use o workflow automático ou manual no GitHub Actions. O runner instala Java, Node.js, Python, Appium e o SDK Android; não é preciso instalar o SDK no computador local.
-- Acesso de rede a `restful-booker.herokuapp.com` e `practicesoftwaretesting.com`. Nenhuma credencial privada é exigida para os comandos seguros.
+| Comando na raiz | O que executa | Resultado esperado |
+| --- | --- | --- |
+| `make help` | Lista os alvos disponíveis | Mostra comandos e descrições |
+| `make test-api` | Sincroniza `uv.lock`, roda Ruff e os 22 testes de regressão; exclui apenas `quality_finding` | Falha se Ruff ou regressão falhar |
+| `make test-e2e` | Constrói a imagem `web/Dockerfile` e executa somente `@checkout-safe` | Falha se algum cenário falhar |
+| `make test-all` | Executa `test-api` e `test-e2e`, informa ambos os códigos de saída | Falha se qualquer um falhar; não executa mobile nem carga |
+| `make test-api-finding` | Executa somente API-001, mantendo a assertion original | Permanece FAILED enquanto a API retornar HTTP 500 |
+| `make typecheck` | Instala dependências de `web/package-lock.json` e roda `tsc --noEmit` | Falha em erro de tipos |
+| `make test-load-smoke` | API mock local, 10 VUs por 15 s | Falha se k6 ou thresholds falharem |
+| `make test-load` | API mock local, 500 VUs por 5 min | Falha se k6 ou thresholds falharem |
 
-As versões instaladas pelo lockfile web são Playwright **1.64.1**, Cucumber.js **13.3.0**, TypeScript **7.0.2** e `tsx` **4.23.15**. A API exige Python **3.12**; as demais dependências Python são resolvidas por `uv.lock`. Não é necessário instalar Node.js no host para a execução E2E com Docker.
+Os alvos de carga iniciam e encerram os containers automaticamente; `test-load` leva pelo menos cinco minutos. O conjunto `@checkout-safe` valida carrinho, checkout visitante até Payment e cinco casos de endereço incompleto. Ele não finaliza pedidos nem executa login negativo em conta pública.
 
-Os blocos a seguir são as alternativas completas para quem não tem Make. Execute os comandos na raiz do repositório. Para apontar a API para outro ambiente, configure `BOOKER_BASE_URL`; o padrão está em `api/conftest.py`. Para reproduzir `make test-all` sem Make, execute os blocos de API e E2E separadamente e confira o código de saída de cada um.
-
-## Executar a API
+Sem Make, os comandos equivalentes mais usados são:
 
 ```bash
+# Regressão API
 uv sync --locked --dev
 uv run --locked ruff check api
 mkdir -p reports/api-regression
 uv run --locked pytest api/tests -m "not quality_finding" -v \
   --html=reports/api-regression/report.html --self-contained-html \
   --junitxml=reports/api-regression/junit.xml
-```
 
-O achado [API-001](docs/findings.md) é executado separadamente para preservar o resultado da assertion original:
-
-```bash
-uv sync --locked --dev
-mkdir -p reports/api-quality-findings
-uv run --locked pytest \
-  api/tests/test_required_fields_negative.py::test_post_rejects_missing_firstname -v \
-  --html=reports/api-quality-findings/report.html --self-contained-html \
-  --junitxml=reports/api-quality-findings/junit.xml
-```
-
-Esse comando deve sair com código diferente de zero enquanto a API retornar HTTP 500 para a entrada inválida. O marcador `quality_finding` exclui somente esse teste da regressão principal.
-
-## Executar o E2E seguro
-
-```bash
+# E2E Web seguro
 docker build -t quality-challenge-e2e:local web
 mkdir -p reports
-docker run --rm --ipc=host \
-  --user "$(id -u):$(id -g)" -e HOME=/tmp \
-  -v "$PWD/reports:/workspace/reports" \
-  quality-challenge-e2e:local \
+docker run --rm --ipc=host --user "$(id -u):$(id -g)" -e HOME=/tmp \
+  -v "$PWD/reports:/workspace/reports" quality-challenge-e2e:local \
   npm test -- --tags @checkout-safe
 ```
 
-A tag `@checkout-safe` inclui carrinho, avanço como visitante até Payment e validação de endereço incompleto. Ela não inclui os cenários de login negativo em contas compartilhadas. Os testes de checkout **não finalizam pedidos**.
-
-Para conferir os tipos TypeScript sem Make ou Docker, execute na raiz do projeto:
-
-```bash
-cd web && npm ci --no-audit --no-fund
-npx tsc --noEmit
-```
+Para o achado, use `make test-api-finding` ou o comando no [Makefile](Makefile); para carga, use `bash performance/run-load.sh smoke` ou `bash performance/run-load.sh load`. `BOOKER_BASE_URL` altera o destino da API; o padrão é Restful Booker. A instalação web usa Playwright 1.64.1, Cucumber.js 13.3.0, TypeScript 7.0.2 e `tsx` 4.23.15 fixados em `web/package-lock.json`; a imagem base está em `web/Dockerfile`.
 
 ### Login negativo em ambiente isolado
 
-Os cenários `@login-negative` **não devem ser executados contra a instância pública**. O hook exige `E2E_ALLOW_NEGATIVE_AUTH=1` **e** `WEB_BASE_URL` apontando para `localhost`, `127.0.0.1` ou `::1`; também bloqueia requisições externas durante esses cenários. A variável sozinha não libera o destino público: a execução falha antes de abrir o navegador. Isso é uma restrição deliberada, não um SKIP ou XFAIL.
-
-Inicie primeiro uma instância Toolshop própria e autorizada, acessível por loopback a partir do processo de teste, com dados isolados e a conta do exemplo presente nessa instância. Depois, com as dependências e o Chromium local instalados, execute em `web/` (substitua `<porta>` pela porta local):
+`@login-negative` exige `E2E_ALLOW_NEGATIVE_AUTH=1` **e** `WEB_BASE_URL` apontando para `localhost`, `127.0.0.1` ou `::1`. O hook também bloqueia requisições externas. Use uma instância Toolshop própria, autorizada e com conta de teste isolada; não faça tentativas de senha incorreta na conta pública compartilhada. Depois de instalar as dependências web e o Chromium, execute em `web/`:
 
 ```bash
-WEB_BASE_URL=http://127.0.0.1:<porta> \
-E2E_ALLOW_NEGATIVE_AUTH=1 \
-npm test -- --tags @login-negative
+WEB_BASE_URL=http://127.0.0.1:<porta> E2E_ALLOW_NEGATIVE_AUTH=1 \
+  npm test -- --tags @login-negative
 ```
 
-Ao executar dentro de Docker, o endereço de loopback precisa apontar para a instância isolada **do ponto de vista do container**; uma variável de ambiente não torna um destino público seguro. Não use esses cenários na instância compartilhada nem no job `E2E Safe`.
+O loopback precisa ser acessível do ponto de vista do processo de teste, inclusive se ele estiver em Docker. Essa restrição falha explicitamente; não usa SKIP ou XFAIL.
 
-## Performance local isolada
+## GitHub Actions
 
-O cenário em `performance/load-test.js` usa o executor `constant-vus`: **500 VUs por 5 minutos** no perfil completo. Cada VU faz uma requisição por iteração e pausa por 1 segundo. Aproximadamente 80% das requisições leem itens fixos por `GET /api/items/:id`; 20% criam registros sintéticos em memória por `POST /api/records`. O script verifica status HTTP e campos essenciais do JSON, sem enviar dados pessoais. A API mock e o k6 ficam em uma rede Docker `internal`, sem portas publicadas no host; o teste não acessa Restful Booker, Toolshop ou outro serviço público. Essa escolha usa o [executor `constant-vus` do k6](https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/constant-vus/) e uma [rede interna do Compose](https://docs.docker.com/compose/how-tos/networking/#internal-networks).
+Abra a aba **Actions**, escolha o workflow, selecione uma execução e consulte os jobs. Para rodar manualmente, clique em **Run workflow** e escolha a branch; em Performance, selecione também `smoke` ou `load`.
 
-Na raiz do projeto, execute o smoke validado; o script inicia a API, aguarda o health check, executa o k6 e remove os containers e a rede inclusive se o teste falhar:
+| Workflow | Gatilhos | Jobs ou perfis | Artifact |
+| --- | --- | --- | --- |
+| [Quality](.github/workflows/quality.yml) | `push` na `main`, `pull_request`, manual | **API Tests** e **E2E Safe** | `api-tests-reports`, `e2e-safe-reports` |
+| [Performance](.github/workflows/performance.yml) | Apenas manual | `smoke` (padrão) ou `load` | `performance-smoke-reports` ou `performance-load-reports` |
+| [Mobile Android Tests](.github/workflows/mobile.yml) | `push` na `main`, `pull_request` para `main`, manual | **Android Appium tests** | `mobile-android-poc` |
 
-```bash
-make test-load-smoke
-```
+Em Quality, Ruff e regressão API bloqueiam o job. O API-001 roda em etapa diagnóstica com `continue-on-error` somente nela: seu resultado original aparece no `GITHUB_STEP_SUMMARY` e nos relatórios, sem ser apresentado como teste aprovado. O job E2E Safe continua FAILED quando o catálogo público é bloqueado. Mobile instala o APK v2.2.0 com checksum, inicia Android API 35 e executa os testes durante a vida do emulador. Performance usa Docker Compose em rede interna; não envia carga a serviços públicos.
 
-O smoke usa **10 VUs por 15 segundos**. Somente para smoke ou diagnóstico local, é possível ajustar `PERF_VUS` e `PERF_DURATION`, por exemplo: `PERF_VUS=20 PERF_DURATION=30s make test-load-smoke`. O perfil completo ignora essas variáveis e mantém 500 VUs por 5 minutos: `make test-load`. Uma execução local completa está registrada em [resultados de performance](docs/performance-results.md); isso não comprova que o workflow passou no GitHub.
+## Relatórios e evidências
 
-Os resultados ficam em `reports/performance/smoke-summary.json` e `smoke-summary.txt` ou `load-summary.json` e `load-summary.txt`, conforme o perfil. O resumo também aparece no console. O [registro dos resultados](docs/performance-results.md) separa números medidos de hipóteses.
+O diretório `reports/` é gerado pela execução e ignorado pelo Git. No GitHub, baixe o artifact na página da execução; os uploads usam `if: always()`, então os arquivos já produzidos continuam disponíveis quando um job falha.
 
-Os thresholds de referência da API mock são taxa de erro HTTP **< 1%**, taxa de erro de contrato **< 1%** e latência HTTP **p95 < 500 ms**. Eles fazem o k6 retornar erro quando falham, mas **não são SLAs reais**. Gerador e API dividem a mesma máquina e recursos de Docker; CPU, memória, disco e agendamento local influenciam a vazão e a latência. O smoke confirma o funcionamento do cenário, não a capacidade de produção nem o resultado esperado para 500 VUs.
-
-## Relatórios e GitHub Actions
-
-Abra `reports/api-regression/report.html`, `reports/api-quality-findings/report.html` ou `reports/e2e-report.html` no navegador depois da execução local. O relatório Cucumber incorpora screenshots de cenários que falham quando a captura é possível; erros de captura são registrados sem substituir a falha original. Logs e JUnit XML também são gerados para os jobs de API. A pasta `reports/` está ignorada pelo Git.
-
-O workflow `.github/workflows/quality.yml` roda em `push` para `main`, `pull_request` e manualmente em `workflow_dispatch`. Na aba **Actions**, abra uma execução e baixe os artifacts `api-tests-reports` (pastas `api-regression/` e `api-quality-findings/`) e `e2e-safe-reports`.
-
-| Job | Execução | Política de falha |
+| Área | Caminho gerado | Conteúdo |
 | --- | --- | --- |
-| API Tests | Ruff e 22 testes de regressão; etapa diagnóstica separada para `test_post_rejects_missing_firstname` | Ruff e regressão bloqueiam o job; `continue-on-error` vale somente para a etapa diagnóstica. O resumo da execução mostra seu `outcome` original, inclusive `failure` |
-| E2E Safe | Imagem Docker existente, somente `@checkout-safe` | Falha bloqueia o job |
+| API regressão | `reports/api-regression/` | `report.html`, `junit.xml`, log no CI |
+| API-001 | `reports/api-quality-findings/` | `report.html`, `junit.xml`, log no CI |
+| E2E Web | `reports/e2e-report.html`, `reports/e2e-safe.log`, `reports/catalog-diagnostics/` | HTML, log do CI, JSON e PNG dos diagnósticos |
+| Mobile | `reports/mobile/` | `report.html`, `junit.xml`, logs Appium/Pytest, screenshots e XML quando gerados |
+| Performance | `reports/performance/` | `smoke-summary.json/.txt` ou `load-summary.json/.txt` |
 
-Os dois jobs são independentes. Dentro de `API Tests`, o API-001 mantém sua assertion, o código de saída real do Pytest (atualmente FAILED) e relatório próprio. O `continue-on-error` da etapa permite concluir a regressão sem apresentar o achado como teste aprovado; o resultado original é registrado no `GITHUB_STEP_SUMMARY`. Nenhum teste usa XFAIL ou SKIP para esse achado.
+Abra o HTML no navegador e o JUnit XML em um visualizador compatível. Um arquivo que depende de uma etapa não iniciada pode não existir; nesse caso, consulte o log do job. O [resumo da carga local](docs/evidence/k6-load-summary.json) está versionado como evidência permanente.
 
-### Mobile Android no GitHub Actions
+## Arquitetura do projeto
 
-O workflow [Mobile Android Tests](.github/workflows/mobile.yml) é independente de `quality.yml`. Está configurado para executar em `push` na `main`, em `pull_request` com destino à `main` e manualmente por **Actions → Mobile Android Tests → Run workflow** (escolha a branch). Usa `ubuntu-24.04`, Android API 35, APK oficial v2.2.0 com checksum fixado, Appium 3.7.0, UiAutomator2 8.7.0 e dependências Python do grupo `mobile` em `uv.lock`. Primeiro verifica a instalação e a abertura do aplicativo; depois inicia o Appium e executa os dois testes Pytest enquanto o emulador está ativo. Não são necessárias credenciais privadas. Os novos gatilhos automáticos ainda dependem de uma execução real para validação.
+| Diretório | Responsabilidade |
+| --- | --- |
+| `api/` | Fixtures Pytest para cliente HTTP, dados e limpeza; testes de contrato e cenários negativos |
+| `web/features/`, `web/steps/`, `web/pages/`, `web/support/` | Gherkin, steps, Page Objects, estado e hooks do Cucumber |
+| `mobile/pages/`, `mobile/tests/` | Page Objects Android, fixtures Appium e dois testes independentes |
+| `performance/` | API mock Node.js, cenário k6 e Compose isolado |
+| `.github/workflows/` | Pipelines independentes de Quality, Performance e Mobile |
 
-Na execução **Mobile Android POC #7** do GitHub Actions, os **2 testes passaram**, com **0 falhas, 0 erros e 0 testes ignorados**. O Pytest levou **86,48 segundos**; o job inteiro levou aproximadamente **3 minutos e 56 segundos**. O primeiro teste usa `mobile.qa@example.com` e uma senha sintética: o aplicativo valida o formato e exibe um sucesso **simulado**, sem autenticação em backend, antes da navegação para Forms. O segundo grava um valor único em armazenamento local, compara o valor exibido, reinicia o processo do aplicativo sem limpar seus dados e confirma o valor recuperado. Não altera serviços externos.
+## Limitações conhecidas
 
-Para consultar os resultados, abra a execução em **Actions**, selecione o job **Android Appium tests** e baixe o artifact `mobile-android-poc` na seção **Artifacts**. Os arquivos `report.html` e `junit.xml`, gerados em `reports/mobile/`, foram publicados na execução #7. O workflow também publica as evidências disponíveis nesse diretório, como `pytest.log`, `appium.log`, screenshots, hierarquias XML e logs Android; o upload usa `if: always()` mesmo se os testes falharem. Abra o HTML no navegador e consulte o XML em um visualizador JUnit. O boot do emulador, KVM, download do APK e disponibilidade do asset ainda podem variar entre runners; uma falha ambiental deve ser analisada pelos logs antes de ser classificada como defeito funcional.
+- **E2E Web no GitHub:** o Toolshop público respondeu HTTP 403 com a tela “Just a moment...” do Cloudflare nos sete cenários da execução diagnosticada. Nenhum produto foi renderizado; carrinho e checkout não foram exercitados no runner. Os diagnósticos estão no artifact `e2e-safe-reports`. Isso não comprova defeito funcional. Não contornamos a proteção anti-bot; a execução E2E no GitHub continua não atendida até existir um ambiente autorizado e acessível.
+- **Cobertura do checkout:** compra concluída e rejeição de cartão inválido não foram automatizadas. O fluxo implementado termina em Payment, sem clicar em `finish` nem usar cartão real.
+- **API pública:** o API-001 registra HTTP 500 para `POST /booking` sem `firstname`; a classificação contratual segue em investigação. Disponibilidade e dados da API pública podem variar.
+- **Mobile:** o sucesso do login é simulado; a persistência foi validada apenas na instalação atual após reiniciar o processo. Boot, KVM e downloads podem variar entre runners.
+- **Performance:** k6 e API mock compartilham recursos da mesma máquina ou runner. O `sleep(1)` influencia a vazão; os thresholds são critérios de referência da mock, não SLAs nem medição da capacidade máxima de produção.
 
-### Performance manual no GitHub Actions
+## Documentação complementar
 
-Na aba **Actions**, selecione **Performance**, clique em **Run workflow**, escolha `smoke` (padrão: 10 VUs por 15 segundos) ou `load` (500 VUs por 5 minutos) e inicie a execução. O workflow não roda em push nem em pull request. Ele usa `ubuntu-24.04`, inicia a mesma API mock e o k6 via Docker Compose, e chama `make test-load-smoke` ou `make test-load`. O script de execução encerra os containers e preserva a falha do k6 ou dos thresholds.
-
-Ao terminar, abra a execução na aba **Actions** para ver o resumo das métricas e baixe o artifact `performance-smoke-reports` ou `performance-load-reports`. Ele contém o JSON e o TXT gerados em `reports/performance/`, quando a execução alcança a geração dos resumos. Se ela falhar antes disso, consulte o log da etapa de execução. Nenhuma credencial privada é necessária; a rede Docker é interna e a carga não é enviada a serviços públicos.
-
-Localmente, k6 e API mock compartilham os recursos da sua máquina; no GitHub, compartilham os recursos do runner. Diferenças de CPU, memória e agendamento podem mudar vazão e latência. O `sleep(1)` também limita a taxa produzida. Resultados do runner devem ser interpretados separadamente dos [resultados locais](docs/performance-results.md); nenhum deles mede capacidade de produção. O workflow ainda não foi executado no GitHub.
-
-## Limitações da execução E2E no GitHub Actions
-
-Na execução local com Docker, os **7 cenários `@checkout-safe` e 41 steps passaram**. No GitHub Actions, os **7 cenários ficaram FAILED** no mesmo ponto, antes da seleção do produto: a navegação para `https://practicesoftwaretesting.com/` recebeu **HTTP 403** do Cloudflare, apresentou a página **"Just a moment..."** de verificação humana e não renderizou produtos.
-
-O artifact `e2e-safe-reports` da execução no GitHub contém o relatório HTML (`e2e-report.html`), o log (`e2e-safe.log`) e os JSONs e screenshots em `catalog-diagnostics/`. Os diagnósticos registram URL, título, status HTTP, contagens de produtos e imagem da página. Essas evidências mostram uma barreira de acesso no runner do CI; os testes não chegaram a exercitar o carrinho ou o checkout. Por isso, a falha **não comprova um defeito funcional** nesses fluxos.
-
-Não adotamos proxies, técnicas de ocultação do navegador nem automação da verificação humana para contornar a proteção anti-bot da aplicação pública. A **execução E2E no GitHub permanece não atendida e o job permanece FAILED**. Uma solução definitiva depende de um ambiente Toolshop autorizado e acessível ao runner do CI. Checkout concluído e rejeição de cartão inválido também permanecem fora da cobertura implementada.
-
-## Limitações e cobertura pendente
-
-Restful Booker e Toolshop são serviços públicos compartilhados; disponibilidade, dados e comportamento podem mudar durante a execução. O [achado API-001](docs/findings.md) registra HTTP 500 ao criar uma reserva sem `firstname`; a classificação contratual permanece em investigação.
-
-**Checkout concluído e rejeição de cartão inválido não foram automatizados.** A conclusão cria uma fatura e pode acionar email e atualização de estoque. Para cobrir esses requisitos, use uma instância local controlada do Toolshop, com dados e caixa de email isolados, conforme a [estratégia de testes](docs/test-strategy.md).
-
-A [comparação de aplicações alternativas](docs/ecommerce-alternatives.md) concluiu por **não migrar agora**: a ShopDemo ainda não tem licença explícita identificada nem execução comprovada no CI; a Maison confirmou pedido local, mas aceitou um cartão inválido e não reproduz o checkout visitante atual. Essa investigação não resolve o bloqueio do Cloudflare no GitHub Actions nem os dois requisitos de checkout pendentes.
+- [Estratégia de testes, segurança e lacunas](docs/test-strategy.md)
+- [Achado API-001](docs/findings.md)
+- [Investigação do checkout e locators](docs/checkout-investigation.md)
+- [Alternativas locais ao Toolshop](docs/ecommerce-alternatives.md)
+- [Viabilidade e resultados mobile](docs/mobile-feasibility.md)
+- [Análise dos resultados de performance](docs/performance-results.md)

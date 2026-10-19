@@ -4,7 +4,7 @@
 
 O experimento exercita uma API mock local com o executor `constant-vus` do k6. O perfil completo configura 500 usuários virtuais (VUs) por 5 minutos; o smoke anterior configurou 10 VUs por 15 segundos. Em cada iteração há uma requisição, distribuída em 80% GET e 20% POST, seguida de `sleep(1)`. O teste verifica status HTTP e conteúdo essencial das respostas.
 
-Os números abaixo vêm dos resumos gerados pelas execuções: [`load-summary.json`](../reports/performance/load-summary.json) e [`smoke-summary.json`](../reports/performance/smoke-summary.json). Esses arquivos são locais e ficam fora do versionamento; os comandos ao fim do documento permitem recriá-los.
+Os números abaixo vêm dos resumos gerados pelas execuções. Uma cópia do [resumo da carga completa](evidence/k6-load-summary.json) está versionada para consulta dos avaliadores. Os arquivos originais `reports/performance/load-summary.json` e `reports/performance/smoke-summary.json` são gerados localmente e ficam fora do versionamento; os comandos ao fim do documento permitem recriá-los.
 
 ## Ambiente e limitações
 
