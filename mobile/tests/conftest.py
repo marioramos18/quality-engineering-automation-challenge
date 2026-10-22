@@ -31,7 +31,7 @@ def _wait_for_home(session) -> None:
 
     def home_ready(driver) -> bool:
         nonlocal anr_handled
-        nodes = list(ElementTree.fromstring(driver.page_source).iter("node"))
+        nodes = list(ElementTree.fromstring(driver.page_source).iter())
         launcher_anr = any(
             node.get("resource-id") == "android:id/alertTitle"
             and node.get("text") == "Pixel Launcher isn't responding"
