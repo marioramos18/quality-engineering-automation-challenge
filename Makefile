@@ -3,6 +3,7 @@
 
 HOST_UID := $(shell id -u)
 HOST_GID := $(shell id -g)
+BOOKER_ENV_FILE ?= .env.example
 
 help:
 	@printf '%s\n' \
@@ -19,15 +20,19 @@ test-api:
 	uv sync --locked --dev
 	uv run --locked ruff check api
 	mkdir -p reports/api-regression
-	uv run --locked pytest api/tests -m "not quality_finding" -v \
+	uv run --locked --env-file "$(BOOKER_ENV_FILE)" pytest api/tests -m "not quality_finding" -v \
 	  --html=reports/api-regression/report.html --self-contained-html \
 	  --junitxml=reports/api-regression/junit.xml
 
 test-e2e:
+	@docker info --format '{{.OSType}}' 2>/dev/null | grep -qx linux || { \
+	  printf '%s\n' 'Docker Linux indisponível. Inicie o Docker Engine e confira: docker info'; \
+	  exit 1; \
+	}
 	docker build -t quality-challenge-e2e:local web
 	mkdir -p reports
 	docker run --rm --ipc=host \
-	  --user "$(HOST_UID):$(HOST_GID)" -e HOME=/tmp \
+	  --user "$(HOST_UID):$(HOST_GID)" -e HOME=/tmp -e WEB_BASE_URL \
 	  -v "$(CURDIR)/reports:/workspace/reports" \
 	  quality-challenge-e2e:local \
 	  npm test -- --tags @checkout-safe
@@ -42,7 +47,7 @@ test-all:
 test-api-finding:
 	uv sync --locked --dev
 	mkdir -p reports/api-quality-findings
-	uv run --locked pytest \
+	uv run --locked --env-file "$(BOOKER_ENV_FILE)" pytest \
 	  api/tests/test_required_fields_negative.py::test_post_rejects_missing_firstname -v \
 	  --html=reports/api-quality-findings/report.html --self-contained-html \
 	  --junitxml=reports/api-quality-findings/junit.xml

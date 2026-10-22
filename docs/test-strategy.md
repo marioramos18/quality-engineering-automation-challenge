@@ -16,6 +16,8 @@ Cada cenário Cucumber inicia e encerra seu próprio contexto de navegador. Os t
 
 Os dois serviços públicos podem ficar indisponíveis, mudar resposta ou ter dados alterados por outros usuários. A seleção de produto no Toolshop depende de estoque disponível. Reservas criadas na API pública têm efeito temporário até a limpeza. Os relatórios devem distinguir indisponibilidade ambiental de uma divergência funcional reproduzível. No GitHub Actions, a proteção do Cloudflare impediu o acesso ao catálogo antes que a disponibilidade de produto pudesse ser avaliada.
 
+Em um ensaio local feito numa cópia isolada do projeto, seis cenários E2E passaram e um falhou após cinco segundos esperando um produto. O diagnóstico desse caso mostrou a página normal com cartões de carregamento, zero produtos e nenhuma resposta HTTP 4xx/5xx registrada. A espera automática pelo mesmo locator foi ampliada para 15 segundos; na execução seguinte, os sete cenários e 41 steps passaram. Isso evidencia uma lentidão pontual observada, sem provar que o prazo novo eliminará toda instabilidade da aplicação pública.
+
 ## Limitações da execução E2E no GitHub Actions
 
 A execução local com Docker comprovou **7 cenários e 41 steps aprovados** para `@checkout-safe`. No GitHub Actions, os **7 cenários ficaram FAILED** em `CatalogPage.openAvailableProduct()`. Os sete diagnósticos registraram **HTTP 403** na navegação para `https://practicesoftwaretesting.com/`, título **"Just a moment..."**, página de verificação humana do Cloudflare e **zero produtos renderizados**. Todos falharam antes de acessar um produto.

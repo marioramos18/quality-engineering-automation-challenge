@@ -43,8 +43,13 @@ def booking_payload() -> dict:
 @pytest.fixture(scope="session")
 def auth_token(api_client: APIRequestContext) -> str:
     """Authenticate once for booking cleanup during the test session."""
-    username = os.getenv("BOOKER_USERNAME", "admin")
-    password = os.getenv("BOOKER_PASSWORD", "password123")
+    username = os.getenv("BOOKER_USERNAME")
+    password = os.getenv("BOOKER_PASSWORD")
+    if not username or not password:
+        pytest.fail(
+            "Set BOOKER_USERNAME and BOOKER_PASSWORD for the target API "
+            "(see .env.example)."
+        )
     response = api_client.post(
         "/auth",
         data={

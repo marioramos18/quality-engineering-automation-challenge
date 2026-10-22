@@ -1,72 +1,72 @@
 import { expect } from "playwright/test";
-import type { Page } from "playwright";
-
-export type BillingField =
-  | "postal_code"
-  | "house_number"
-  | "street"
-  | "city"
-  | "state";
-
-const billingValues: Record<BillingField, string> = {
-  postal_code: "99999-999",
-  house_number: "1",
-  street: "Test Street",
-  city: "Test City",
-  state: "Test State",
-};
+import type { Locator, Page } from "playwright";
+import type { BillingAddress, BillingField, GuestDetails } from "../support/test-data.ts";
+import { routes } from "../support/routes.ts";
 
 export class CheckoutPage {
-  constructor(private readonly page: Page) {}
+  readonly guestTab: Locator;
+  readonly guestEmail: Locator;
+  readonly guestFirstName: Locator;
+  readonly guestLastName: Locator;
+  readonly guestSubmit: Locator;
+  readonly guestProceed: Locator;
+  readonly billingHeading: Locator;
+  readonly country: Locator;
+  readonly billingFields: Readonly<Record<BillingField, Locator>>;
+  readonly billingProceed: Locator;
+  readonly paymentHeading: Locator;
+  readonly paymentMethod: Locator;
+  readonly finish: Locator;
 
-  async continueAsGuest(email: string): Promise<void> {
-    const guestTab = this.page.getByRole("tab", { name: "Continue as Guest" });
-    await expect(guestTab).toBeVisible();
-    await guestTab.click();
-
-    await this.page.locator('[data-test="guest-email"]').fill(email);
-    await this.page.locator('[data-test="guest-first-name"]').fill("QA");
-    await this.page.locator('[data-test="guest-last-name"]').fill("Explorer");
-    await this.page.locator('[data-test="guest-submit"]').click();
-
-    const proceed = this.page.locator('[data-test="proceed-2-guest"]');
-    await expect(proceed).toBeEnabled();
-    await proceed.click();
-    await expect(
-      this.page.getByRole("heading", { name: "Billing Address" })
-    ).toBeVisible();
+  constructor(private readonly page: Page) {
+    this.guestTab = page.getByRole("tab", { name: "Continue as Guest" });
+    this.guestEmail = page.locator('[data-test="guest-email"]');
+    this.guestFirstName = page.locator('[data-test="guest-first-name"]');
+    this.guestLastName = page.locator('[data-test="guest-last-name"]');
+    this.guestSubmit = page.locator('[data-test="guest-submit"]');
+    this.guestProceed = page.locator('[data-test="proceed-2-guest"]');
+    this.billingHeading = page.getByRole("heading", { name: "Billing Address" });
+    this.country = page.locator('[data-test="country"]');
+    this.billingFields = {
+      postal_code: page.locator('[data-test="postal_code"]'),
+      house_number: page.locator('[data-test="house_number"]'),
+      street: page.locator('[data-test="street"]'),
+      city: page.locator('[data-test="city"]'),
+      state: page.locator('[data-test="state"]'),
+    };
+    this.billingProceed = page.locator('[data-test="proceed-3"]');
+    this.paymentHeading = page.getByRole("heading", { name: "Payment" });
+    this.paymentMethod = page.locator('[data-test="payment-method"]');
+    this.finish = page.locator('[data-test="finish"]');
   }
 
-  async fillBillingAddress(omittedField?: BillingField): Promise<void> {
-    await this.page.locator('[data-test="country"]')
-      .selectOption({ label: "Brazil" });
+  async continueAsGuest(guest: GuestDetails): Promise<void> {
+    await expect(this.guestTab).toBeVisible();
+    await this.guestTab.click();
 
-    for (const [field, value] of Object.entries(billingValues)) {
+    await this.guestEmail.fill(guest.email);
+    await this.guestFirstName.fill(guest.firstName);
+    await this.guestLastName.fill(guest.lastName);
+    await this.guestSubmit.click();
+
+    await expect(this.guestProceed).toBeEnabled();
+    await this.guestProceed.click();
+    await expect(this.billingHeading).toBeVisible();
+  }
+
+  async fillBillingAddress(address: BillingAddress, omittedField?: BillingField): Promise<void> {
+    await this.country.selectOption({ label: address.country });
+
+    for (const field of Object.keys(address.fields) as BillingField[]) {
       if (field !== omittedField) {
-        await this.page.locator(`[data-test="${field}"]`).fill(value);
+        await this.billingFields[field].fill(address.fields[field]);
       }
     }
   }
 
-  async verifyIncompleteAddress(): Promise<void> {
-    await expect(
-      this.page.getByRole("heading", { name: "Billing Address" })
-    ).toBeVisible();
-    await expect(this.page.locator('[data-test="proceed-3"]'))
-      .toBeDisabled();
-  }
-
-  async reachPayment(): Promise<void> {
-    const proceed = this.page.locator('[data-test="proceed-3"]');
-    await expect(proceed).toBeEnabled();
-    await proceed.click();
-
-    await expect(this.page).toHaveURL(/\/checkout(?:[/?#]|$)/);
-    await expect(this.page.getByRole("heading", { name: "Payment" }))
-      .toBeVisible();
-    await expect(this.page.locator('[data-test="payment-method"]'))
-      .toBeVisible();
-    await expect(this.page.locator('[data-test="finish"]'))
-      .toBeDisabled();
+  async openPayment(): Promise<void> {
+    await expect(this.billingProceed).toBeEnabled();
+    await this.billingProceed.click();
+    await expect(this.page).toHaveURL(routes.checkout);
   }
 }

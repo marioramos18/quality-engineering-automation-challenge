@@ -5,8 +5,11 @@ import {
   When,
   Then,
 } from "@cucumber/cucumber";
+import { expect } from "playwright/test";
 
 import { LoginPage } from "../pages/login.page.ts";
+import { customerCredentials } from "../support/config.ts";
+import { routes } from "../support/routes.ts";
 import type { E2EWorld } from "../support/world.ts";
 
 
@@ -15,7 +18,7 @@ Given(
   async function (this: E2EWorld) {
     assert.ok(this.page, "Page not initialized");
 
-    const loginPage = new LoginPage(this.page);
+    const loginPage = new LoginPage(this.page, this.config);
 
     await loginPage.open();
   }
@@ -27,15 +30,9 @@ When(
   async function (this: E2EWorld) {
     assert.ok(this.page, "Page not initialized");
 
-    const email =
-      process.env.E2E_CUSTOMER_EMAIL ??
-      "customer@practicesoftwaretesting.com";
+    const { email, password } = customerCredentials(this.config);
 
-    const password =
-      process.env.E2E_CUSTOMER_PASSWORD ??
-      "welcome01";
-
-    const loginPage = new LoginPage(this.page);
+    const loginPage = new LoginPage(this.page, this.config);
 
     await loginPage.login(email, password);
   }
@@ -47,9 +44,10 @@ Then(
   async function (this: E2EWorld) {
     assert.ok(this.page, "Page not initialized");
 
-    const loginPage = new LoginPage(this.page);
+    const loginPage = new LoginPage(this.page, this.config);
 
-    await loginPage.waitForAccountPage();
+    await loginPage.awaitAccountNavigation();
+    await expect(loginPage.accountHeading).toBeVisible();
   }
 );
 
@@ -63,7 +61,7 @@ When(
   ) {
     assert.ok(this.page, "Page not initialized");
 
-    const loginPage = new LoginPage(this.page);
+    const loginPage = new LoginPage(this.page, this.config);
 
     await loginPage.login(email, password);
   }
@@ -75,7 +73,7 @@ Then(
   async function (this: E2EWorld) {
     assert.ok(this.page, "Page not initialized");
 
-    const loginPage = new LoginPage(this.page);
+    const loginPage = new LoginPage(this.page, this.config);
 
     // An authentication error must be visible.
     const errorMessage =
@@ -89,7 +87,7 @@ Then(
     // The user must remain on the login page.
     assert.match(
       this.page.url(),
-      /\/auth\/login(?:[/?#]|$)/,
+      routes.loginPattern,
       "The user should remain on the login page"
     );
   }
@@ -109,7 +107,7 @@ Then(
       `Unexpected field: ${field}`
     );
 
-    const loginPage = new LoginPage(this.page);
+    const loginPage = new LoginPage(this.page, this.config);
 
     const errorMessage = loginPage.requiredFieldError(field);
 
@@ -120,7 +118,7 @@ Then(
 
     assert.match(
       this.page.url(),
-      /\/auth\/login(?:[/?#]|$)/,
+      routes.loginPattern,
       "The user should remain on the login page"
     );
   }

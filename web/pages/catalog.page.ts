@@ -3,8 +3,9 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { expect } from "playwright/test";
-import type { Page } from "playwright";
+import type { Locator, Page } from "playwright";
 import type { E2EWorld } from "../support/world.ts";
+import type { WebConfig } from "../support/config.ts";
 
 type CatalogEvidence = Pick<
   E2EWorld,
@@ -36,10 +37,23 @@ function safePageUrl(rawUrl: string): string {
 }
 
 export class CatalogPage {
+  readonly productLinks: Locator;
+  readonly outOfStock: Locator;
+  readonly availableCard: Locator;
+  readonly availableProductName: Locator;
+
   constructor(
     private readonly page: Page,
-    private readonly network: CatalogEvidence
-  ) {}
+    private readonly network: CatalogEvidence,
+    private readonly config: WebConfig
+  ) {
+    this.productLinks = page.locator('a[data-test^="product-"]');
+    this.outOfStock = page.locator('[data-test="out-of-stock"]');
+    this.availableCard = page.locator(
+      'a[data-test^="product-"]:not(:has([data-test="out-of-stock"]))'
+    ).first();
+    this.availableProductName = this.availableCard.locator('[data-test="product-name"]');
+  }
 
   private async saveUnavailableCatalogEvidence(): Promise<void> {
     const reportDirectory = path.resolve(process.cwd(), "../reports/catalog-diagnostics");
@@ -62,8 +76,8 @@ export class CatalogPage {
         readyState: document.readyState,
         bodyText: (document.body?.innerText ?? "").slice(0, 2000),
       })),
-      this.page.locator('a[data-test^="product-"]').count(),
-      this.page.locator('[data-test="out-of-stock"]').count(),
+      this.productLinks.count(),
+      this.outOfStock.count(),
     ]);
 
     const report = {
@@ -88,21 +102,13 @@ export class CatalogPage {
   }
 
   async openAvailableProduct(): Promise<string> {
-    const baseUrl = (
-      process.env.WEB_BASE_URL ??
-      "https://practicesoftwaretesting.com"
-    ).replace(/\/$/, "");
-
-    await this.page.goto(baseUrl, {
+    await this.page.goto(this.config.baseUrl, {
       waitUntil: "domcontentloaded",
       timeout: 15000,
     });
 
-    const card = this.page.locator(
-      'a[data-test^="product-"]:not(:has([data-test="out-of-stock"]))'
-    ).first();
     try {
-      await expect(card).toBeVisible();
+      await expect(this.availableCard).toBeVisible({ timeout: 15_000 });
     } catch (error) {
       try {
         await this.saveUnavailableCatalogEvidence();
@@ -112,8 +118,8 @@ export class CatalogPage {
       throw error;
     }
 
-    const name = await card.locator('[data-test="product-name"]').innerText();
-    await card.click();
+    const name = await this.availableProductName.innerText();
+    await this.availableCard.click();
 
     return name.trim();
   }
