@@ -10,13 +10,20 @@ import { billingAddress, createGuestDetails } from "../support/test-data.ts";
 import type { BillingField } from "../support/test-data.ts";
 import { ProductPage } from "../pages/product.page.ts";
 import { moneyToCents } from "../support/money.ts";
+import { routes } from "../support/routes.ts";
 import type { E2EWorld } from "../support/world.ts";
 
 Given("I have added an available product to my cart", async function (this: E2EWorld) {
   assert.ok(this.page, "Page not initialized");
 
   const name = await new CatalogPage(this.page, this, this.config).openAvailableProduct();
-  this.selectedProduct = await new ProductPage(this.page).addAvailableProduct(name);
+  const product = new ProductPage(this.page);
+  await expect(product.name).toHaveText(name);
+  await expect(product.unitPrice).toBeVisible();
+  await expect(product.addToCartButton).toBeEnabled();
+  this.selectedProduct = await product.addAvailableProduct();
+  await expect(product.addedNotice).toBeVisible();
+  await expect(product.cartQuantity).toHaveText(String(this.selectedProduct.quantity));
   assert.ok(Number.isInteger(this.selectedProduct.quantity) && this.selectedProduct.quantity > 0);
   assert.ok(this.selectedProduct.unitPriceCents > 0);
 });
@@ -24,6 +31,7 @@ Given("I have added an available product to my cart", async function (this: E2EW
 When("I view my cart", async function (this: E2EWorld) {
   assert.ok(this.page, "Page not initialized");
   await new CartPage(this.page).open();
+  await expect(this.page).toHaveURL(routes.checkout);
 });
 
 Then(
@@ -52,9 +60,13 @@ When("I continue checkout as a guest", async function (this: E2EWorld) {
 
   const cart = new CartPage(this.page);
   await cart.open();
+  await expect(this.page).toHaveURL(routes.checkout);
+  await expect(cart.productTitle).toBeVisible();
   await cart.startCheckout();
 
-  await new CheckoutPage(this.page).continueAsGuest(createGuestDetails());
+  const checkout = new CheckoutPage(this.page);
+  await checkout.continueAsGuest(createGuestDetails());
+  await expect(checkout.billingHeading).toBeVisible();
 });
 
 When("I provide a complete billing address", async function (this: E2EWorld) {
@@ -89,7 +101,9 @@ Then(
   async function (this: E2EWorld) {
     assert.ok(this.page, "Page not initialized");
     const checkout = new CheckoutPage(this.page);
+    await expect(checkout.billingProceed).toBeEnabled();
     await checkout.openPayment();
+    await expect(this.page).toHaveURL(routes.checkout);
     await expect(checkout.paymentHeading).toBeVisible();
     await expect(checkout.paymentMethod).toBeVisible();
     await expect(checkout.finish).toBeDisabled();

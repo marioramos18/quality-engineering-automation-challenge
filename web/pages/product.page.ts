@@ -1,4 +1,3 @@
-import { expect } from "playwright/test";
 import type { Locator, Page } from "playwright";
 import { moneyToCents } from "../support/money.ts";
 
@@ -25,22 +24,14 @@ export class ProductPage {
     this.cartQuantity = page.locator('[data-test="cart-quantity"]');
   }
 
-  async addAvailableProduct(expectedName: string): Promise<SelectedProduct> {
-    await expect(this.name).toHaveText(expectedName);
-    await expect(this.unitPrice).toBeVisible();
-    await expect(this.addToCartButton).toBeEnabled();
-
+  async addAvailableProduct(): Promise<SelectedProduct> {
     const selected: SelectedProduct = {
-      name: expectedName,
+      name: (await this.name.innerText()).trim(),
       quantity: Number(await this.quantity.inputValue()),
       unitPriceCents: moneyToCents(await this.unitPrice.innerText()),
     };
 
     await this.addToCartButton.click();
-    await expect(this.addedNotice).toBeVisible();
-    await expect(this.cartQuantity)
-      .toHaveText(String(selected.quantity));
-
     return selected;
   }
 }

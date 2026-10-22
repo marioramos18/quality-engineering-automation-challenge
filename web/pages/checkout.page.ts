@@ -1,7 +1,5 @@
-import { expect } from "playwright/test";
 import type { Locator, Page } from "playwright";
 import type { BillingAddress, BillingField, GuestDetails } from "../support/test-data.ts";
-import { routes } from "../support/routes.ts";
 
 export class CheckoutPage {
   readonly guestTab: Locator;
@@ -18,7 +16,7 @@ export class CheckoutPage {
   readonly paymentMethod: Locator;
   readonly finish: Locator;
 
-  constructor(private readonly page: Page) {
+  constructor(page: Page) {
     this.guestTab = page.getByRole("tab", { name: "Continue as Guest" });
     this.guestEmail = page.locator('[data-test="guest-email"]');
     this.guestFirstName = page.locator('[data-test="guest-first-name"]');
@@ -41,7 +39,6 @@ export class CheckoutPage {
   }
 
   async continueAsGuest(guest: GuestDetails): Promise<void> {
-    await expect(this.guestTab).toBeVisible();
     await this.guestTab.click();
 
     await this.guestEmail.fill(guest.email);
@@ -49,9 +46,7 @@ export class CheckoutPage {
     await this.guestLastName.fill(guest.lastName);
     await this.guestSubmit.click();
 
-    await expect(this.guestProceed).toBeEnabled();
     await this.guestProceed.click();
-    await expect(this.billingHeading).toBeVisible();
   }
 
   async fillBillingAddress(address: BillingAddress, omittedField?: BillingField): Promise<void> {
@@ -65,8 +60,6 @@ export class CheckoutPage {
   }
 
   async openPayment(): Promise<void> {
-    await expect(this.billingProceed).toBeEnabled();
     await this.billingProceed.click();
-    await expect(this.page).toHaveURL(routes.checkout);
   }
 }

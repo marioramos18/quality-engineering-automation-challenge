@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { expect } from "playwright/test";
 import type { Locator, Page } from "playwright";
 import type { E2EWorld } from "../support/world.ts";
 import type { WebConfig } from "../support/config.ts";
@@ -108,7 +107,7 @@ export class CatalogPage {
     });
 
     try {
-      await expect(this.availableCard).toBeVisible({ timeout: 15_000 });
+      await this.availableCard.waitFor({ state: "visible", timeout: 15_000 });
     } catch (error) {
       try {
         await this.saveUnavailableCatalogEvidence();

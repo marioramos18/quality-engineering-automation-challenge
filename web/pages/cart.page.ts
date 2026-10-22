@@ -1,6 +1,4 @@
-import { expect } from "playwright/test";
 import type { Locator, Page } from "playwright";
-import { routes } from "../support/routes.ts";
 
 export class CartPage {
   readonly navCart: Locator;
@@ -11,7 +9,7 @@ export class CartPage {
   readonly cartTotal: Locator;
   readonly proceed: Locator;
 
-  constructor(private readonly page: Page) {
+  constructor(page: Page) {
     this.navCart = page.locator('[data-test="nav-cart"]');
     this.productTitle = page.locator('[data-test="product-title"]');
     this.productQuantity = page.locator('[data-test="product-quantity"]');
@@ -23,8 +21,6 @@ export class CartPage {
 
   async open(): Promise<void> {
     await this.navCart.click();
-    await expect(this.page).toHaveURL(routes.checkout);
-    await expect(this.productTitle).toBeVisible();
   }
 
   async startCheckout(): Promise<void> {
