@@ -1,22 +1,21 @@
-import type { Page } from "playwright";
+import type { Locator, Page } from "playwright";
+import { routes } from "../support/routes.ts";
 
 export class AccountPage {
-  constructor(private readonly page: Page) {}
+  readonly profileLink: Locator;
+  readonly profileHeading: Locator;
+  readonly firstName: Locator;
+  readonly email: Locator;
 
-  async openProfile(): Promise<void> {
-    await this.page.locator('[data-test="nav-profile"]').click();
-    await this.page.waitForURL(/\/account\/profile(?:[/?#]|$)/);
+  constructor(private readonly page: Page) {
+    this.profileLink = page.locator('[data-test="nav-profile"]');
+    this.profileHeading = page.getByRole("heading", { name: "Profile" });
+    this.firstName = page.locator('[data-test="first-name"]');
+    this.email = page.locator('[data-test="email"]');
   }
 
-  async waitForProfileForm(): Promise<void> {
-    await this.page.getByRole("heading", { name: "Profile" }).waitFor({
-      state: "visible",
-    });
-    await this.page.locator('[data-test="first-name"]').waitFor({
-      state: "visible",
-    });
-    await this.page.locator('[data-test="email"]').waitFor({
-      state: "visible",
-    });
+  async openProfile(): Promise<void> {
+    await this.profileLink.click();
+    await this.page.waitForURL(routes.profile);
   }
 }

@@ -9,6 +9,7 @@ import type {
   Page,
 } from "playwright";
 import type { SelectedProduct } from "../pages/product.page.ts";
+import { loadWebConfig } from "./config.ts";
 
 export interface CatalogNetworkEvent {
   method: string;
@@ -19,6 +20,7 @@ export interface CatalogNetworkEvent {
 }
 
 export class E2EWorld extends World {
+  readonly config = loadWebConfig();
   browser?: Browser;
   context?: BrowserContext;
   page?: Page;
