@@ -9,7 +9,7 @@ help:
 	@printf '%s\n' \
 	  'make help              Exibe os comandos disponíveis' \
 	  'make test-api          Ruff e regressão API, sem quality_finding' \
-	  'make test-e2e          Checkout seguro no Docker (@checkout-safe)' \
+	  'make test-e2e          Suíte completa em Toolshop isolado e descartável' \
 	  'make test-all          Executa API e E2E e informa ambos os resultados' \
 	  'make test-api-finding  Executa API-001 com resultado real' \
 	  'make typecheck         Instala dependências web e valida TypeScript' \
@@ -25,17 +25,7 @@ test-api:
 	  --junitxml=reports/api-regression/junit.xml
 
 test-e2e:
-	@docker info --format '{{.OSType}}' 2>/dev/null | grep -qx linux || { \
-	  printf '%s\n' 'Docker Linux indisponível. Inicie o Docker Engine e confira: docker info'; \
-	  exit 1; \
-	}
-	docker build -t quality-challenge-e2e:local web
-	mkdir -p reports
-	docker run --rm --ipc=host \
-	  --user "$(HOST_UID):$(HOST_GID)" -e HOME=/tmp -e WEB_BASE_URL \
-	  -v "$(CURDIR)/reports:/workspace/reports" \
-	  quality-challenge-e2e:local \
-	  npm test -- --tags @checkout-safe
+	python3 scripts/run_e2e.py
 
 test-all:
 	@$(MAKE) --no-print-directory test-api; api_status=$$?; \

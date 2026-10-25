@@ -65,29 +65,41 @@ jobs:
             reports/api-quality-findings/
           if-no-files-found: warn
 
-  e2e-safe:
-    name: E2E Safe
+  e2e:
+    name: E2E isolated
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - name: Build existing E2E image
-        run: docker build -t quality-challenge-e2e:ci web
-      - name: Run safe checkout scenarios
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run complete suite, isolation guards and TypeScript checks
+        run: python scripts/run_e2e.py
+      - name: Summarize E2E results
+        if: always()
         run: |
-          mkdir -p reports
-          set -o pipefail
-          docker run --rm --ipc=host \
-            -v "$PWD/reports:/workspace/reports" \
-            quality-challenge-e2e:ci \
-            npm test -- --tags @checkout-safe \
-            2>&1 | tee reports/e2e-safe.log
-      - name: Upload E2E safe reports
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          report = Path('reports/e2e-isolated/junit.xml')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as output:
+              output.write('### E2E isolated\n\n')
+              if report.exists():
+                  suites = list(ET.parse(report).getroot().iter('testsuite'))
+                  totals = {key: sum(int(s.get(key, 0)) for s in suites)
+                            for key in ('tests', 'failures', 'errors', 'skipped')}
+                  output.write(f"Scenarios: {totals['tests']}; failures: {totals['failures']}; "
+                               f"errors: {totals['errors']}; skipped: {totals['skipped']}.\n")
+              else:
+                  output.write('JUnit was not generated. Inspect setup logs and services.log.\n')
+          PY
+      - name: Upload E2E evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-safe-reports
-          path: |
-            reports/e2e-report.html
-            reports/e2e-safe.log
-            reports/catalog-diagnostics/
+          name: e2e-isolated-reports
+          path: reports/e2e-isolated/
           if-no-files-found: warn

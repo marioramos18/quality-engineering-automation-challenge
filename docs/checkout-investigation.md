@@ -1,5 +1,7 @@
 # Investigação técnica do checkout do Toolshop
 
+> Atualização da implementação em 25/10/2026: o registro abaixo descreve a inspeção pública de 18/10, não a cobertura atual. A suíte agora usa imagens Toolshop Sprint 5 fixadas por digest em `web/isolated/compose.yaml` e inclui compra completa e rejeição de formato de cartão. Seletores `#order-confirmation`, `#invoice-number`, `payment-success-message`, campos de cartão e a mensagem “Invalid card number format.” foram confirmados na imagem executada. O endereço segue o resultado de `/postcode-lookup`; o pedido criado é consultado por `/invoices/{id}` com a conta demonstrativa do banco privado. Veja [a estratégia atual](test-strategy.md).
+
 **Data:** 18/10/2026
 **Aplicação:** [Practice Software Testing — Toolshop](https://practicesoftwaretesting.com/)
 **Método:** inspeção do DOM e navegação real com Playwright no contêiner `quality-challenge-e2e:local`. Cada percurso usou um contexto novo. Nenhum pedido foi finalizado e nenhum dado de pagamento foi enviado.
