@@ -13,6 +13,8 @@ Os locators usados incluem Accessibility IDs de Login, Forms, Menu e Data Manage
 
 ## Resultado comprovado no GitHub Actions
 
+Atualização de 25/10/2026: a execução [Mobile #15 no PR #2](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/40223251298) aprovou os dois testes em **79,65 s**, sem falhas nem ignorados, e publicou o artifact. Isso também comprova o gatilho de `pull_request` para essa versão. [Registro consolidado](evidence/ci-validation.md). O histórico abaixo descreve execuções anteriores.
+
 A execução **Mobile Android POC #7** passou em um runner `ubuntu-24.04` com emulador Android API 35 x86_64, APK v2.2.0, Appium 3.7.0, UiAutomator2 8.7.0, Python 3.12 e Pytest:
 
 | Medida | Resultado |
@@ -34,7 +36,7 @@ O [workflow mobile](../.github/workflows/mobile.yml) usa `ubuntu-24.04`, Java 17
 
 ## Execução automática, manual e evidências
 
-O workflow **Mobile Android Tests** está configurado para `push` na branch `main`, `pull_request` com destino à `main` e `workflow_dispatch`. Para iniciar manualmente, abra **Actions → Mobile Android Tests → Run workflow** e selecione a branch. Ele permanece separado de `quality.yml`. A [execução automática por `push` na `main`](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/39184912606) concluiu com **2 testes PASSED** e upload das evidências. O gatilho de `pull_request` ainda não foi comprovado por uma execução observada.
+O workflow **Mobile Android Tests** está configurado para `push` na branch `main`, `pull_request` com destino à `main` e `workflow_dispatch`. Para iniciar manualmente, abra **Actions → Mobile Android Tests → Run workflow** e selecione a branch. Ele permanece separado de `quality.yml`. A [execução automática por `push` na `main`](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/39184912606) concluiu com **2 testes PASSED** e upload das evidências. O gatilho de `pull_request` foi posteriormente comprovado na execução #15, indicada acima.
 
 Em **Actions**, abra a execução e baixe o artifact `mobile-android-poc` na seção **Artifacts**. Os relatórios ficam em `reports/mobile/report.html` e `reports/mobile/junit.xml`. O diretório também contém, quando gerados, `pytest.log`, `appium.log`, screenshots, hierarquias XML e logs Android. O upload usa `if: always()`, inclusive quando o teste falha; arquivos que dependem de uma etapa não iniciada podem não existir. O HTML pode ser aberto no navegador; o XML pode ser lido por um visualizador JUnit.
 

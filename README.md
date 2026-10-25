@@ -150,9 +150,11 @@ O login é simulado pelo aplicativo. O segundo teste salva um valor em Data Mana
 | --- | --- | --- |
 | API regressão | 22 aprovados, 0 falhas, 0 ignorados | `reports/api-regression/` |
 | API-001 | 1 falha: HTTP 500 ao omitir `firstname` | `reports/api-quality-findings/` |
-| Web isolado | Login, navegação, campos obrigatórios, carrinho, endereço incompleto, compra e cartão inválido | `reports/e2e-isolated/` |
+| Web isolado | 17 cenários e 103 passos aprovados; 4 testes de isolamento e typecheck aprovados | `reports/e2e-isolated/` |
 | Carga completa | 500 VUs, 5 min, 150.000 requisições, 0% erros, 3 thresholds aprovados | `reports/performance/` |
-| Mobile | 2 aprovados nas execuções anteriores documentadas; host local sem Android SDK/KVM | `reports/mobile/` no artifact |
+| Mobile | 2 aprovados no PR atual; host local sem Android SDK/KVM | `reports/mobile/` no artifact |
+
+API, E2E e mobile passaram no GitHub Actions para o commit `d40edc7`: [resultados, tempos e artifacts](docs/evidence/ci-validation.md). O API-001 permanece FAILED no diagnóstico separado.
 
 O HTML E2E inclui screenshots dos cenários e, na compra, o identificador e os valores do pedido consultado. Também são gerados JUnit, `cucumber.log`, `services.log` e JSON/PNG de diagnóstico em falhas. `reports/` é ignorado pelo Git; os artifacts do CI preservam os resultados da execução. A [matriz de cobertura e pendências](docs/test-strategy.md) distingue resultado local, histórico remoto e itens ainda não comprovados.
 
@@ -173,6 +175,6 @@ Em Bash com GNU Make, continuam disponíveis `make help`, `make test-api`, `make
 - O cartão `0000-0000-0000-0000` é sintético. O cenário positivo prova aceitação pelo demonstrativo e persistência do pedido; o negativo prova rejeição de formato, sem autorização bancária.
 - Endereço é chamado **Billing Address** na aplicação. Não há etapa de entrega distinta comprovada. O preenchimento acompanha a consulta demonstrativa de CEP.
 - Contratos de erro da API e a classificação definitiva do API-001 ainda exigem confirmação da especificação.
-- Validação funcional em Windows/macOS e execução remota da versão atual devem ser comprovadas pelos respectivos relatórios, sem inferir sucesso a partir do Linux.
+- Validação funcional em Windows/macOS/Apple Silicon permanece pendente. As evidências remotas se referem ao commit indicado, sem inferir sucesso de versões futuras.
 
 Documentação: [estratégia e pendências](docs/test-strategy.md), [API-001](docs/findings.md), [inspeção do checkout](docs/checkout-investigation.md), [mobile](docs/mobile-feasibility.md), [performance](docs/performance-results.md).

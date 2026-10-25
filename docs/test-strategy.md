@@ -24,9 +24,9 @@ O endereço demonstrativo é preenchido a partir da resposta de `/postcode-looku
 | Web: pagamento e compra completa | `payment.feature` positivo | Cartão sintético, pagamento demonstrativo, HTTP 201, confirmação UI, pedido consultado pela API, produto/quantidade/preço/subtotal e contagem |
 | Web: cartão inválido | `payment.feature` negativo | Formato inválido, mensagem específica, botão desabilitado, confirmação ausente e contagem de pedidos inalterada |
 | Relatório Web | Cucumber HTML e JUnit | Screenshot de cada cenário isolado, resumo do pedido e diagnósticos em falhas |
-| CI: API, Web, mobile após commits | Quality e Mobile Android Tests | Push na main e PR; sucesso da versão atual deve ser verificado na execução remota |
+| CI: API, Web, mobile após commits | Quality e Mobile Android Tests | Push na main e PR; [execuções atuais aprovadas](evidence/ci-validation.md) |
 | Carga opcional | k6 500 VUs por 5 minutos | 150.000 requisições, zero erros, três thresholds aprovados na execução local de referência |
-| Mobile opcional | Dois testes Appium | Login simulado/navegação e gravação local após reinício; resultados remotos históricos em mobile-feasibility.md |
+| Mobile opcional | Dois testes Appium | Login simulado/navegação e gravação local após reinício; 2 aprovados no PR #2, além do histórico em mobile-feasibility.md |
 | README e publicação | README e workflows no GitHub | Comandos diretos independentes de Make; publicação da branch não equivale a merge na main |
 
 ## Contratos, achados e dados
@@ -45,9 +45,10 @@ Durante a validação da instância privada, uma execução encontrou HTTP 422 n
 
 ## Pendências e estratégia de conclusão
 
+A validação remota de API, E2E completo e mobile foi concluída no PR #2. [Registro do commit, resultados e artifacts](evidence/ci-validation.md).
+
 | Prioridade | Item restante | Próxima ação | Critério de aceite |
 | --- | --- | --- | --- |
-| Alta | Evidência remota atual | Executar Quality e Mobile na branch/PR | E2E completo e mobile aprovados; artifacts consultáveis |
 | Média | Contratos negativos da API | Confirmar especificação e adicionar headers/corpos onde definidos | Negativos com contrato explícito, sem pressupor status arbitrários |
 | Média | API-001 | Confirmar contrato e manter diagnóstico rastreável | Classificação fundamentada; resultado real preservado |
 | Média | Windows/macOS/Apple Silicon | Reproduzir comandos em instalações limpas com Docker Desktop | Relatórios por sistema/arquitetura; documentar incompatibilidades de imagem |
