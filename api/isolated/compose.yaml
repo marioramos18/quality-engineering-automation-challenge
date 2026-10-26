@@ -1,0 +1,16 @@
+# Author-published application image; no third-party source is vendored.
+services:
+  booker:
+    image: mwinteringham/restfulbooker@sha256:7c94ad49f9a9db99760229bf81c04be946c23beb1dbb01f2aa36e1b3db89e81a
+    platform: linux/amd64
+    ports:
+      - "127.0.0.1::3001"
+    healthcheck:
+      test: [CMD, node, -e, "require('http').get('http://127.0.0.1:3001/ping',r=>process.exit(r.statusCode===201?0:1)).on('error',()=>process.exit(1))"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    networks: [isolated]
+
+networks:
+  isolated: {}

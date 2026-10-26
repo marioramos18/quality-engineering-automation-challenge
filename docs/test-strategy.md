@@ -1,42 +1,60 @@
-# Estratégia de testes
+# Estratégia, rastreabilidade e pendências
 
-## Seleção dos cenários
+## Ambiente e responsabilidades
 
-A regressão API reúne verificações de contrato, autenticação, autorização e validações que têm assertions explícitas. O teste `test_post_rejects_missing_firstname` permanece como diagnóstico `quality_finding`: espera HTTP 400/422 e atualmente documenta uma resposta HTTP 500 da API pública. No job `API Tests`, Ruff e os 22 testes de regressão são bloqueantes; o achado roda em etapa própria com `continue-on-error` apenas nessa etapa. O código de saída e o relatório do Pytest preservam o resultado real (atualmente FAILED), e `steps.api_finding.outcome` o registra no resumo da execução.
+O E2E obrigatório executa em uma instância Toolshop Sprint 5 privada, com imagens fixadas por digest, banco efêmero por execução, seed conhecido e rede Docker interna. `python3 scripts/run_e2e.py` inicia o ambiente, executa TypeScript, testes das restrições de isolamento e Cucumber, preserva evidências e remove somente os recursos do projeto recém-criado.
 
-No job E2E, a tag `@checkout-safe` seleciona carrinho, checkout visitante até Payment e bloqueio de endereço incompleto. Esses cenários foram implementados para exercitar transições e valores visíveis sem concluir pedidos. Cenários de login negativo não participam do CI porque usam contas de demonstração compartilhadas.
+Navegador, Angular e listener HTTP compartilham loopback dentro do Docker. Não há portas publicadas nem dependência do catálogo público. Login negativo e criação de pedidos exigem flags explícitas e URL loopback; os hooks bloqueiam requisições externas e service workers. A API de auditoria exige loopback, não segue redirects e usa somente a conta demonstrativa administrativa do banco descartável. A suíte é sequencial: a comparação de contagem de pedidos pressupõe ausência de outro escritor nesse banco.
 
-Os cenários `@login-negative` só podem começar quando `E2E_ALLOW_NEGATIVE_AUTH=1` e `WEB_BASE_URL` aponta para loopback. O hook rejeita o destino público antes de iniciar o navegador e bloqueia requisições externas durante esses cenários, inclusive redirecionamentos. Para reproduzi-los, use uma instância Toolshop própria, autorizada e com conta de teste isolada, conforme o comando do [README](../README.md#login-negativo-em-ambiente-isolado). A restrição produz falha explícita; não usa SKIP ou XFAIL.
+Page Objects concentram locators e ações. Steps contêm as assertivas de negócio. Configuração, dados sintéticos, auditoria HTTP e escrita de diagnósticos ficam em `support/`. Cada cenário recebe contexto novo. As validações de pagamento aguardam respostas reais e a confirmação visual; não há retries de cenário nem sleeps fixos.
 
-## Isolamento e dados
+O endereço demonstrativo é preenchido a partir da resposta de `/postcode-lookup`, evitando disputa com o autopreenchimento da interface. Nos negativos, o campo do exemplo é esvaziado depois do preenchimento. A aceitação do endereço no backend permanece validada pela criação do pedido positivo.
 
-Cada cenário Cucumber inicia e encerra seu próprio contexto de navegador. Os testes de checkout usam dados sintéticos e email `example.com`, não usam conta demonstrativa e não acionam `data-test="finish"`. Os testes API geram payloads independentes; a fixture de reserva criada tenta remover o registro após o cenário. A etapa diagnóstica do API-001 mantém a limpeza defensiva já existente no teste.
+## Matriz de cobertura
 
-## Riscos do ambiente compartilhado
-
-Os dois serviços públicos podem ficar indisponíveis, mudar resposta ou ter dados alterados por outros usuários. A seleção de produto no Toolshop depende de estoque disponível. Reservas criadas na API pública têm efeito temporário até a limpeza. Os relatórios devem distinguir indisponibilidade ambiental de uma divergência funcional reproduzível. No GitHub Actions, a proteção do Cloudflare impediu o acesso ao catálogo antes que a disponibilidade de produto pudesse ser avaliada.
-
-Em um ensaio local feito numa cópia isolada do projeto, seis cenários E2E passaram e um falhou após cinco segundos esperando um produto. O diagnóstico desse caso mostrou a página normal com cartões de carregamento, zero produtos e nenhuma resposta HTTP 4xx/5xx registrada. A espera automática pelo mesmo locator foi ampliada para 15 segundos; na execução seguinte, os sete cenários e 41 steps passaram. Isso evidencia uma lentidão pontual observada, sem provar que o prazo novo eliminará toda instabilidade da aplicação pública.
-
-## Limitações da execução E2E no GitHub Actions
-
-A execução local com Docker comprovou **7 cenários e 41 steps aprovados** para `@checkout-safe`. No GitHub Actions, os **7 cenários ficaram FAILED** em `CatalogPage.openAvailableProduct()`. Os sete diagnósticos registraram **HTTP 403** na navegação para `https://practicesoftwaretesting.com/`, título **"Just a moment..."**, página de verificação humana do Cloudflare e **zero produtos renderizados**. Todos falharam antes de acessar um produto.
-
-O artifact `e2e-safe-reports` disponibiliza `e2e-report.html`, `e2e-safe.log` e os pares JSON/PNG em `catalog-diagnostics/`. O JSON registra a URL e as respostas HTTP; o PNG mostra a página exibida. A combinação desses registros permite distinguir bloqueio de acesso no runner de falha funcional: os passos de carrinho e checkout não foram alcançados no CI. Os resultados locais demonstram que os cenários funcionaram naquele ambiente, mas não substituem uma execução aprovada no GitHub.
-
-Não usamos proxies, disfarces de navegador ou automação da verificação humana para contornar a proteção anti-bot. O job E2E continua **FAILED** e a execução E2E no GitHub permanece **não atendida**. Para torná-la reproduzível, é necessário um ambiente Toolshop autorizado e acessível ao CI, com dados de teste controlados. As assertions, os timeouts, os locators e os critérios de sucesso permanecem intactos.
-
-## Cobertura entregue e requisitos pendentes
-
-| Área | Cobertura implementada | Pendente |
+| Requisito do desafio | Implementação | Evidência / limite |
 | --- | --- | --- |
-| API | Job `API Tests`: regressão bloqueante e etapa diagnóstica do API-001 com HTML, JUnit XML e logs | Confirmação contratual do HTTP 500 |
-| Carrinho | Produto disponível, quantidade, preço de linha e total; aprovado localmente | Execução E2E no GitHub bloqueada por HTTP 403; variações adicionais de produto e desconto |
-| Checkout visitante | Endereço válido até Payment e cinco campos ausentes no endereço; aprovado localmente | Execução E2E no GitHub bloqueada por HTTP 403; pedido concluído e rejeição de cartão inválido não implementados |
-| Autenticação web | Cenários existentes preservados no repositório | Execução negativa em ambiente isolado |
+| API: GET, POST, PUT, DELETE | `api/tests/` | HTML/JUnit da regressão: 22 testes; validar contrato completo dos erros permanece pendente |
+| API: entradas inválidas, ausências, autenticação | Testes negativos e API-001 separado | 1 falha real preservada no diagnóstico; não compõe a regressão aprovada |
+| Web: login e navegação ao formulário | `login.feature`, `account_navigation.feature` | Cenários incluídos na suíte isolada |
+| Web: senha incorreta e usuário inexistente | `@login-negative` | Executados apenas na instância descartável |
+| Web: campos obrigatórios | `@login-validation` | Validação de email e senha, inclusive ambos vazios |
+| Web: carrinho e totais | `checkout.feature` | Produto, quantidade, preço unitário, linha e total |
+| Web: endereço incompleto | Cinco exemplos em `checkout.feature` | Billing Address; não se afirma existir etapa de entrega separada |
+| Web: pagamento e compra completa | `payment.feature` positivo | Cartão sintético, pagamento demonstrativo, HTTP 201, confirmação UI, pedido consultado pela API, produto/quantidade/preço/subtotal e contagem |
+| Web: cartão inválido | `payment.feature` negativo | Formato inválido, mensagem específica, botão desabilitado, confirmação ausente e contagem de pedidos inalterada |
+| Relatório Web | Cucumber HTML e JUnit | Screenshot de cada cenário isolado, resumo do pedido e diagnósticos em falhas |
+| CI: API, Web, mobile após commits | Quality e Mobile Android Tests | Push na main e PR; [execuções atuais aprovadas](evidence/ci-validation.md) |
+| Carga opcional | k6 500 VUs por 5 minutos | 150.000 requisições, zero erros, três thresholds aprovados na execução local de referência |
+| Mobile opcional | Dois testes Appium | Login simulado/navegação e gravação local após reinício; 2 aprovados no PR #2, além do histórico em mobile-feasibility.md |
+| README e publicação | README e workflows no GitHub | Comandos diretos independentes de Make; publicação da branch não equivale a merge na main |
 
-A [comparação de ShopDemo e Maison](ecommerce-alternatives.md) não levou à migração: a primeira depende de licença explícita e prova de CI; a segunda confirma compras locais, mas não rejeita o número de cartão inválido e não oferece os campos/etapas do checkout visitante atual. Portanto, continuam obrigatórios e **não atendidos**: E2E aprovado no GitHub Actions, checkout concluído automatizado e rejeição de cartão inválido automatizada. Uma alternativa só deve substituir o Toolshop após demonstrar ganho de cobertura reproduzível sem apagar essas lacunas.
+## Contratos, achados e dados
 
-## Checkout completo em ambiente controlado
+A API cria dados independentes e tenta remover somente as reservas criadas pelo próprio teste. `.env.example` contém a conta pública demonstrativa; uma instância autorizada alternativa usa URL e credenciais de seu próprio `.env`. Não há credenciais privadas versionadas.
 
-Para comprovar pedido concluído e pagamento inválido, executar uma instância privada e local do Toolshop com banco isolado e capturador de email, conforme a configuração Docker Compose descrita no repositório oficial. No positivo, `cash-on-delivery` evita dados de cartão; confirmar a resposta de criação da fatura, número do pedido, registro persistido e email capturado. No negativo, usar somente dados de cartão sintéticos e formato deliberadamente inválido; confirmar a resposta de validação, a mensagem da interface e a ausência de nova fatura. Antes de implementar esses testes, confirmar a versão da instância, os seletores e a sequência real do botão `finish`. Não usar a instância pública para criar pedidos de teste sem autorização explícita.
+A regressão completa agora usa `scripts/run_api.py`: imagem do autor fixada por digest, container por execução e porta aleatória publicada somente em loopback. As credenciais demonstrativas ficam em `api/isolated/credentials.env`; segredos herdados do host não são usados. A coleta bloqueia os seis negativos de autenticação/autorização fora de loopback com opt-in explícito. Redirects HTTP ficam desativados. O runner salva logs e ambiente e remove somente seu próprio projeto Docker. Treze testes verificam a proteção e a remoção de evidências antigas em falha de pré-requisito.
+
+O API-001 espera HTTP 400/422 e recebe 500. Continua FAILED em diagnóstico separado; o CI registra o resultado original da etapa com `continue-on-error`, sem apresentá-lo como aprovado. A classificação definitiva como defeito contratual depende da especificação. Não usar XFAIL, SKIP ou aceitar 500 como solução.
+
+Os dados de cartão são sintéticos. O Toolshop valida formato e simula sucesso; não há gateway bancário. A auditoria do pedido consulta o banco por uma rota independente da resposta de criação. A fila de email não é processada nesta entrega; entrega de email não está sendo comprovada.
+
+## Histórico ambiental
+
+A suíte pública anterior passou localmente com sete cenários seguros, mas falhou no GitHub por HTTP 403/Cloudflare antes do catálogo. Isso foi uma falha ambiental, não evidência de defeito de checkout. O job atual usa instalação privada; os resultados antigos continuam relevantes somente como histórico, não como estado da implementação atual.
+
+Durante a validação da instância privada, uma execução encontrou HTTP 422 no positivo por incompatibilidade entre o endereço preenchido manualmente e a consulta de CEP. A correção sincroniza os dados com essa consulta e preserva a exigência de HTTP 201. Outra execução inicial aprovou os cenários, mas falhou ao salvar o HTML por diferença de UID; o executor agora passa UID/GID do host e mantém a falha de relatório como erro real.
+
+## Pendências e estratégia de conclusão
+
+A validação remota anterior de API, E2E completo e mobile foi concluída no PR #2. [Registro do commit, resultados e artifacts](evidence/ci-validation.md). A revisão final `3ad8224` foi validada remotamente com API, E2E, mobile e checks Python Windows/macOS aprovados; consulte o mesmo registro. As [evidências locais](evidence/local-validation.md) permanecem separadas.
+
+| Prioridade | Item restante | Próxima ação | Critério de aceite |
+| --- | --- | --- | --- |
+| Média | Contratos negativos da API | [Revisão da implementação](api-error-contracts.md) acrescenta status exatos, media type e corpo em 11 casos; falta contrato normativo e revisão implantada | Distinguir caracterização da implementação de especificação publicada |
+| Média | API-001 | Inspeção fundamenta problema de tratamento de entrada; confirmar status normativo com mantenedor | Resultado FAILED preservado; não afirmar violação de status publicado |
+| Média | Windows/macOS/Apple Silicon | Reproduzir comandos em instalações limpas com Docker Desktop | Relatórios por sistema/arquitetura; documentar incompatibilidades de imagem |
+| Média | Segundo ambiente Web | A API foi comprovada em privado e no público com seleção segura; Web permite configuração, mas segunda origem ainda não foi validada | Mesmos Page Objects e steps em instância compatível sem alteração de código |
+| Baixa | Endereço no checkout | Explicitar ao avaliador que os cinco negativos usam Billing Address | Não apresentar como comprovada etapa distinta de entrega |
+
+A execução Linux comprova somente esse ambiente. Scripts Python evitam Bash/Make para E2E/carga, mas isso não comprova Docker Desktop nos demais sistemas. O host atual não possui Android SDK, adb ou KVM; resultados mobile devem vir de um runner preparado.

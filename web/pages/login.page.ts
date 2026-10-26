@@ -14,11 +14,7 @@ export class LoginPage {
     this.email = page.locator('[data-test="email"]');
     this.password = page.locator('[data-test="password"]');
     this.submit = page.locator('[data-test="login-submit"]');
-    this.authenticationError = page.locator(
-      '[data-test="login-error"]:visible, ' +
-      '[role="alert"]:visible, ' +
-      '.alert-danger:visible'
-    ).first();
+    this.authenticationError = page.locator('[data-test="login-error"]');
     this.accountHeading = page.getByRole("heading", { name: /my account/i });
     this.requiredErrors = {
       email: page.getByText(/email.*required/i).first(),

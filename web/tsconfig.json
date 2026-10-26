@@ -12,6 +12,7 @@
   "include": [
     "pages/**/*.ts",
     "steps/**/*.ts",
-    "support/**/*.ts"
+    "support/**/*.ts",
+    "tests/**/*.ts"
   ]
 }

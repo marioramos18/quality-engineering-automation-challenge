@@ -11,7 +11,13 @@ Foram implementados dois testes em `mobile/tests/`, com Page Objects em `mobile/
 
 Os locators usados incluem Accessibility IDs de Login, Forms, Menu e Data Management, além de seletores nativos para os botões. A execução funcional no emulador confirmou que os seletores necessários a esses dois fluxos funcionaram com o APK fixado. Essa confirmação não se estende a outras versões do aplicativo ou a campos e fluxos não cobertos.
 
+Rastreabilidade da tarefa 2 do PDF: `test_persisted_value_is_recovered_after_restart` abre Data Management; `save_persisted_value` preenche `data-async-input`, verifica o conteúdo e aciona **Save**; `assert_persisted_value` compara `data-async-readout` com o valor enviado, inclusive após reiniciar o processo. Há preenchimento, acionamento de envio e verificação do resultado local. O enunciado não exige envio a backend remoto.
+
 ## Resultado comprovado no GitHub Actions
+
+A revisão final `3ad8224` aprovou os dois testes em **70,78 s**, sem falhas ou skips: [Mobile no PR](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/40251176449). O preparo agora encerra uma vez o Pixel Launcher travado quando reconhece seu alerta específico, preserva evidências e exige Home antes dos cenários. A execução anterior que falhou após selecionar Wait está preservada no [registro de CI](evidence/ci-validation.md). As assertions e o APK não foram alterados. Os resultados abaixo são históricos.
+
+Atualização de 25/10/2026: a execução [Mobile #15 no PR #2](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/40223251298) aprovou os dois testes em **79,65 s**, sem falhas nem ignorados, e publicou o artifact. Isso também comprova o gatilho de `pull_request` para essa versão. [Registro consolidado](evidence/ci-validation.md). O histórico abaixo descreve execuções anteriores.
 
 A execução **Mobile Android POC #7** passou em um runner `ubuntu-24.04` com emulador Android API 35 x86_64, APK v2.2.0, Appium 3.7.0, UiAutomator2 8.7.0, Python 3.12 e Pytest:
 
@@ -34,7 +40,7 @@ O [workflow mobile](../.github/workflows/mobile.yml) usa `ubuntu-24.04`, Java 17
 
 ## Execução automática, manual e evidências
 
-O workflow **Mobile Android Tests** está configurado para `push` na branch `main`, `pull_request` com destino à `main` e `workflow_dispatch`. Para iniciar manualmente, abra **Actions → Mobile Android Tests → Run workflow** e selecione a branch. Ele permanece separado de `quality.yml`. A [execução automática por `push` na `main`](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/39184912606) concluiu com **2 testes PASSED** e upload das evidências. O gatilho de `pull_request` ainda não foi comprovado por uma execução observada.
+O workflow **Mobile Android Tests** está configurado nesta revisão para `push` em qualquer branch, `pull_request` com destino à `main` e `workflow_dispatch`. Para iniciar manualmente, abra **Actions → Mobile Android Tests → Run workflow** e selecione a branch. Ele permanece separado de `quality.yml`. A [execução automática por `push` na `main`](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/39184912606) concluiu com **2 testes PASSED** e upload das evidências. O gatilho de `pull_request` foi posteriormente comprovado na execução #15, indicada acima.
 
 Em **Actions**, abra a execução e baixe o artifact `mobile-android-poc` na seção **Artifacts**. Os relatórios ficam em `reports/mobile/report.html` e `reports/mobile/junit.xml`. O diretório também contém, quando gerados, `pytest.log`, `appium.log`, screenshots, hierarquias XML e logs Android. O upload usa `if: always()`, inclusive quando o teste falha; arquivos que dependem de uma etapa não iniciada podem não existir. O HTML pode ser aberto no navegador; o XML pode ser lido por um visualizador JUnit.
 

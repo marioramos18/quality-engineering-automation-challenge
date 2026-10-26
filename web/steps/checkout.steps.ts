@@ -16,7 +16,7 @@ import type { E2EWorld } from "../support/world.ts";
 Given("I have added an available product to my cart", async function (this: E2EWorld) {
   assert.ok(this.page, "Page not initialized");
 
-  const name = await new CatalogPage(this.page, this, this.config).openAvailableProduct();
+  const name = await new CatalogPage(this.page, this.config).openAvailableProduct();
   const product = new ProductPage(this.page);
   await expect(product.name).toHaveText(name);
   await expect(product.unitPrice).toBeVisible();

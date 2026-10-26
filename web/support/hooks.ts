@@ -8,43 +8,13 @@ import {
 import { chromium } from "playwright";
 
 import type { E2EWorld } from "./world.ts";
+import { isAllowedIsolatedRequest, requireIsolatedTarget } from "./isolation.ts";
+import { saveCatalogDiagnostics } from "./catalog-diagnostics.ts";
 
 setDefaultTimeout(30_000);
 
 const MAX_NETWORK_EVENTS = 20;
 const SCREENSHOT_TIMEOUT_MS = 10_000;
-
-function isLoopbackHost(hostname: string): boolean {
-  return hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "[::1]";
-}
-
-function requireIsolatedNegativeAuthTarget(): void {
-  const baseUrl = process.env.WEB_BASE_URL;
-  let target: URL;
-
-  try {
-    target = new URL(baseUrl ?? "");
-  } catch {
-    throw new Error(
-      "@login-negative requires WEB_BASE_URL to point to an authorized local instance."
-    );
-  }
-
-  if (
-    process.env.E2E_ALLOW_NEGATIVE_AUTH !== "1" ||
-    !["http:", "https:"].includes(target.protocol) ||
-    !isLoopbackHost(target.hostname) ||
-    target.username ||
-    target.password
-  ) {
-    throw new Error(
-      "@login-negative is restricted to an authorized loopback instance " +
-      "with E2E_ALLOW_NEGATIVE_AUTH=1. Public targets are forbidden."
-    );
-  }
-}
 
 function safeRequestUrl(rawUrl: string): string {
   try {
@@ -59,9 +29,13 @@ Before(async function (this: E2EWorld, scenario) {
   const negativeAuth = scenario.pickle.tags.some(
     (tag) => tag.name === "@login-negative"
   );
+  const checkout = scenario.pickle.tags.some((tag) => tag.name === "@isolated-checkout");
 
   if (negativeAuth) {
-    requireIsolatedNegativeAuthTarget();
+    requireIsolatedTarget("E2E_ALLOW_NEGATIVE_AUTH", "@login-negative");
+  }
+  if (checkout) {
+    requireIsolatedTarget("E2E_ALLOW_ORDER_CREATION", "@isolated-checkout");
   }
 
   const headed = process.env.PW_HEADED === "1";
@@ -71,23 +45,12 @@ Before(async function (this: E2EWorld, scenario) {
     slowMo: headed ? 350 : 0,
   });
 
-  this.context = await this.browser.newContext();
+  this.context = await this.browser.newContext({ serviceWorkers: "block" });
 
-  if (negativeAuth) {
+  if (negativeAuth || checkout) {
     // Block redirects and API requests from reaching a public host.
     await this.context.route("**/*", async (route) => {
-      let destination: URL;
-      try {
-        destination = new URL(route.request().url());
-      } catch {
-        await route.abort("blockedbyclient");
-        return;
-      }
-
-      if (
-        !["http:", "https:"].includes(destination.protocol) ||
-        !isLoopbackHost(destination.hostname)
-      ) {
+      if (!isAllowedIsolatedRequest(route.request().url())) {
         await route.abort("blockedbyclient");
         return;
       }
@@ -131,6 +94,15 @@ After(async function (this: E2EWorld, scenario) {
   const hookErrors: unknown[] = [];
 
   if (scenarioFailed && this.page) {
+    try {
+      await saveCatalogDiagnostics(this.page, this);
+    } catch (error) {
+      hookErrors.push(error);
+      console.error("Failed to save browser diagnostics:", error);
+    }
+  }
+
+  if ((scenarioFailed || process.env.E2E_CAPTURE_SUCCESS === "1") && this.page) {
     try {
       const screenshot = await this.page.screenshot({
         fullPage: true,

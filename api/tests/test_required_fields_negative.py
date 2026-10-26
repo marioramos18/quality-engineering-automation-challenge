@@ -42,11 +42,14 @@ def test_put_rejects_missing_required_field(
         },
     )
 
-    assert response.status in (400, 422), (
+    # Implementation contract: routes/index.js rejects invalid PUT with 400.
+    assert response.status == 400, (
         f"Missing field: {missing_field}. "
-        f"Expected HTTP 400/422, got {response.status}. "
+        f"Expected HTTP 400, got {response.status}. "
         f"Body: {response.text()}"
     )
+    assert response.headers.get("content-type", "").startswith("text/plain")
+    assert response.text() == "Bad Request"
 
     get_response = api_client.get(
         f"/booking/{booking_id}",

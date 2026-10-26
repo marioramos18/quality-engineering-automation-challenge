@@ -79,10 +79,8 @@ Then(
     const errorMessage =
       await loginPage.getAuthenticationError();
 
-    assert.ok(
-      errorMessage.length > 0,
-      "Expected a visible authentication error message"
-    );
+    assert.equal(errorMessage, "Invalid email or password",
+      "Expected the specific invalid-credentials error");
 
     // The user must remain on the login page.
     assert.match(

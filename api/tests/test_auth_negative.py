@@ -2,6 +2,7 @@ import pytest
 from playwright.sync_api import APIRequestContext
 
 
+@pytest.mark.isolated_auth
 @pytest.mark.parametrize(
     "credentials",
     [

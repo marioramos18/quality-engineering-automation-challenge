@@ -15,7 +15,7 @@ export interface GuestDetails {
 
 export interface BillingAddress {
   readonly country: string;
-  readonly fields: Readonly<Record<BillingField, string>>;
+  readonly fields: Readonly<Record<"postal_code" | "house_number", string>>;
 }
 
 export function createGuestDetails(): GuestDetails {
@@ -31,8 +31,22 @@ export const billingAddress: BillingAddress = {
   fields: {
     postal_code: "99999-999",
     house_number: "1",
-    street: "Test Street",
-    city: "Test City",
-    state: "Test State",
   },
 };
+
+export interface TestCard {
+  readonly number: string;
+  readonly expiration: string;
+  readonly cvv: string;
+  readonly holder: string;
+}
+
+// Synthetic format accepted by the demo validator; never a real payment.
+export function createTestCard(validFormat = true): TestCard {
+  return {
+    number: validFormat ? "0000-0000-0000-0000" : "invalid-card-number",
+    expiration: `12/${new Date().getFullYear() + 2}`,
+    cvv: "000",
+    holder: "QA Test",
+  };
+}
