@@ -4,7 +4,14 @@
 
 Instale Git, Python 3.12, Docker com Compose v2 e [uv](https://docs.astral.sh/uv/getting-started/installation/). No Linux, Docker Engine deve estar ativo e seu usuário precisa acessar o socket. No macOS e no Windows, inicie o Docker Desktop e selecione containers Linux. Para WSL 2, habilite a integração da distribuição no Docker Desktop.
 
-Clone o repositório e abra o terminal na raiz. Confira `git --version`, `uv --version`, `docker info` e `docker compose version`. Confira também `python3 --version` no Linux/macOS/WSL ou `py -3.12 --version` no PowerShell. Use o Python 3.12 instalado; o uv gerencia o ambiente Python dos testes API. Não é necessário Make. Node/npm no host só são necessários para executar Web fora do runner Docker.
+A entrega está na branch padrão `main`. Clone sem selecionar uma branch adicional:
+
+```text
+git clone https://github.com/marioramos18/quality-engineering-automation-challenge.git
+cd quality-engineering-automation-challenge
+```
+
+Abra o terminal nessa raiz. Confira `git --version`, `uv --version`, `docker info` e `docker compose version`. Confira também `python3 --version` no Linux/macOS/WSL ou `py -3.12 --version` no PowerShell. Use o Python 3.12 instalado; o uv gerencia o ambiente Python dos testes API. Não é necessário Make. Node/npm no host só são necessários para executar Web fora do runner Docker.
 
 ## Executar e consultar resultados
 

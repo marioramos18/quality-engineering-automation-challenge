@@ -1,5 +1,7 @@
 # Validação no GitHub Actions — 25/10/2026
 
+A entrega foi integrada à branch padrão `main` pelo [PR #2](https://github.com/marioramos18/quality-engineering-automation-challenge/pull/2), merge `79527173387a68b24194330dd6280e7c443b4975`. O clone padrão contém a implementação e o passo a passo completos. Os registros abaixo preservam os commits efetivamente validados e seu histórico.
+
 ## Revisão final — commit 3ad8224
 
 Código validado: `3ad822468bb36a0236a742a9eb4a93e58cc349fb`, branch `feat/isolated-e2e-checkout`, [PR #2](https://github.com/marioramos18/quality-engineering-automation-challenge/pull/2). Os artifacts foram baixados e os JUnit conferidos. A atualização documental posterior não altera esse código.

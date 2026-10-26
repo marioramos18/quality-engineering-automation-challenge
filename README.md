@@ -35,7 +35,7 @@ Os Page Objects mantêm locators como propriedades e concentram ações. Os step
 
 ## Instalação e início rápido
 
-Faça o clone e abra um terminal na raiz:
+A versão de entrega está na branch padrão `main`. Não é necessário selecionar outra branch. Faça o clone e abra um terminal na raiz:
 
 ```text
 git clone https://github.com/marioramos18/quality-engineering-automation-challenge.git

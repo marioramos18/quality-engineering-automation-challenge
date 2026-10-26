@@ -27,7 +27,7 @@ O endereço demonstrativo é preenchido a partir da resposta de `/postcode-looku
 | CI: API, Web, mobile após commits | Quality e Mobile Android Tests | Push na main e PR; [execuções atuais aprovadas](evidence/ci-validation.md) |
 | Carga opcional | k6 500 VUs por 5 minutos | 150.000 requisições, zero erros, três thresholds aprovados na execução local de referência |
 | Mobile opcional | Dois testes Appium | Login simulado/navegação e gravação local após reinício; 2 aprovados no PR #2, além do histórico em mobile-feasibility.md |
-| README e publicação | README e workflows no GitHub | Comandos diretos independentes de Make; publicação da branch não equivale a merge na main |
+| README e publicação | README e workflows no GitHub | Entrega integrada à main pelo PR #2; clone padrão e comandos diretos independentes de Make |
 
 ## Contratos, achados e dados
 

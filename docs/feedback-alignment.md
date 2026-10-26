@@ -44,4 +44,4 @@ O PDF exige API com GET/POST/PUT/DELETE, status, headers, corpo, positivos, nega
 
 Implementação publicada e validada no commit `3ad8224`: Quality e mobile aprovados, incluindo os checks Python em Windows/macOS. [Registro remoto](evidence/ci-validation.md). Docker Desktop nesses sistemas e uma segunda origem Web permanecem sem comprovação funcional; a API já foi validada em dois destinos. [Registro local consolidado](evidence/local-validation.md).
 
-O usuário autorizou commit, push e acompanhamento do CI. `.vscode/settings.json` permaneceu fora dos commits. A revisão foi publicada no PR #2; não houve merge.
+O usuário autorizou commit, push e acompanhamento do CI. `.vscode/settings.json` permaneceu fora dos commits. A revisão foi integrada à `main` pelo PR #2 no merge `7952717`, a pedido do usuário. A branch padrão contém a entrega completa; o clone não exige seleção de outra branch.
