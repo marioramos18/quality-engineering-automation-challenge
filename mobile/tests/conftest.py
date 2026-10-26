@@ -40,9 +40,10 @@ def _wait_for_home(session) -> None:
         if launcher_anr:
             _capture_evidence(driver, "launcher-anr-appium")
             if anr_handled:
-                raise RuntimeError("Pixel Launcher ANR persisted after selecting Wait")
+                raise RuntimeError("Pixel Launcher ANR persisted after selecting Close app")
             anr_handled = True
-            driver.find_element(AppiumBy.ID, "android:id/aerr_wait").click()
+            # Close only the crashed system launcher, never the application under test.
+            driver.find_element(AppiumBy.ID, "android:id/aerr_close").click()
             return False
         return any(node.get("content-desc") == "Home-screen" for node in nodes)
 

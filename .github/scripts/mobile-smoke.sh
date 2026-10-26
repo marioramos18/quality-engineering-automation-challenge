@@ -54,7 +54,7 @@ else:
 PY
 }
 
-tap_anr_wait_once() {
+tap_anr_close_once() {
   cp "$report_dir/home-window.xml" "$report_dir/launcher-anr.xml"
   timeout 15s adb exec-out screencap -p > "$report_dir/launcher-anr.png"
   timeout 15s adb shell dumpsys activity activities > "$report_dir/launcher-anr-activities.txt"
@@ -68,7 +68,7 @@ import xml.etree.ElementTree as ET
 
 targets = []
 for node in ET.parse(sys.argv[1]).getroot().iter("node"):
-    if node.get("text") != "Wait":
+    if node.get("resource-id") != "android:id/aerr_close":
         continue
     resource_id = node.get("resource-id", "")
     bounds = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.get("bounds", ""))
@@ -79,13 +79,13 @@ for node in ET.parse(sys.argv[1]).getroot().iter("node"):
         targets.append((resource_id, (left + right) // 2, (top + bottom) // 2))
 
 if len(targets) != 1:
-    raise SystemExit(f"Expected one Wait button with resource-id and bounds; found {len(targets)}")
+    raise SystemExit(f"Expected one Close app button with resource-id and bounds; found {len(targets)}")
 print(*targets[0])
 PY
   )
   read -r resource_id x y <<< "$target"
-  printf 'resource-id=%s bounds-center=%s,%s\n' "$resource_id" "$x" "$y" > "$report_dir/launcher-anr-wait-target.txt"
-  echo "Pixel Launcher ANR detected; selecting Wait ($resource_id) once."
+  printf 'resource-id=%s bounds-center=%s,%s\n' "$resource_id" "$x" "$y" > "$report_dir/launcher-anr-close-target.txt"
+  echo "Pixel Launcher ANR detected; selecting Close app ($resource_id) once."
   adb shell input tap "$x" "$y"
 }
 
@@ -110,7 +110,7 @@ while (( SECONDS < deadline )); do
       fi
       if [[ "$state" == anr && "$anr_handled" -eq 0 ]]; then
         anr_handled=1
-        tap_anr_wait_once
+        tap_anr_close_once
         deadline=$((SECONDS + 60))
       fi
     fi
