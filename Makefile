@@ -1,10 +1,6 @@
 .DEFAULT_GOAL := help
 .PHONY: help test-api test-e2e test-all test-api-finding typecheck test-load-smoke test-load
 
-HOST_UID := $(shell id -u)
-HOST_GID := $(shell id -g)
-BOOKER_ENV_FILE ?= .env.example
-
 help:
 	@printf '%s\n' \
 	  'make help              Exibe os comandos disponíveis' \
@@ -17,12 +13,7 @@ help:
 	  'make test-load         API mock local: 500 VUs por 5 minutos'
 
 test-api:
-	uv sync --locked --dev
-	uv run --locked ruff check api
-	mkdir -p reports/api-regression
-	uv run --locked --env-file "$(BOOKER_ENV_FILE)" pytest api/tests -m "not quality_finding" -v \
-	  --html=reports/api-regression/report.html --self-contained-html \
-	  --junitxml=reports/api-regression/junit.xml
+	python3 scripts/run_api.py
 
 test-e2e:
 	python3 scripts/run_e2e.py
@@ -35,19 +26,14 @@ test-all:
 	  exit "$$e2e_status"
 
 test-api-finding:
-	uv sync --locked --dev
-	mkdir -p reports/api-quality-findings
-	uv run --locked --env-file "$(BOOKER_ENV_FILE)" pytest \
-	  api/tests/test_required_fields_negative.py::test_post_rejects_missing_firstname -v \
-	  --html=reports/api-quality-findings/report.html --self-contained-html \
-	  --junitxml=reports/api-quality-findings/junit.xml
+	python3 scripts/run_api.py --finding
 
 typecheck:
 	cd web && npm ci --no-audit --no-fund
 	cd web && npx tsc --noEmit
 
 test-load-smoke:
-	bash performance/run-load.sh smoke
+	python3 scripts/run_load.py smoke
 
 test-load:
-	bash performance/run-load.sh load
+	python3 scripts/run_load.py load

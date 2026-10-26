@@ -1,5 +1,7 @@
 # Alternativas locais ao Toolshop para testes E2E
 
+> Registro histórico de 18/10/2026. A implementação posterior manteve o Toolshop em ambiente isolado e validou compra completa, cartão inválido e CI. As pendências e recomendações abaixo descrevem a investigação daquela data. Consulte a [estratégia atual](test-strategy.md) e as [evidências do CI](evidence/ci-validation.md).
+
 Investigação em 18/10/2026. Aplicações avaliadas: [ShopDemo (`ettaverse/dummy-ecommerce`)](https://github.com/ettaverse/dummy-ecommerce) e [Maison (`youvegotnigel/maison`)](https://github.com/youvegotnigel/maison). A prova de conceito usou a Maison no commit `a4c5cd38664cfb6795afbe14e4be43b6f3cdfebb`, clonada e executada somente em `/tmp`, fora deste projeto.
 
 **Níveis de evidência:** “confirmado” significa observado nesta prova local ou diretamente no arquivo citado; “previsto pelo código/README” ainda requer execução; “proposto” ou “estimado” não foi validado no GitHub Actions. A ShopDemo foi inspecionada como referência, sem build nem navegação. As conclusões sobre seu comportamento são, portanto, limitadas ao código e à documentação consultados.

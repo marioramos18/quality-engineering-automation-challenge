@@ -16,10 +16,13 @@ def test_post_rejects_malformed_json(
         },
     )
 
-    assert response.status in (400, 422), (
+    # express.json() rejects malformed JSON before the booking handler.
+    assert response.status == 400, (
         f"Malformed JSON was not correctly rejected. "
         f"HTTP {response.status}. Body: {response.text()}"
     )
+    assert response.headers.get("content-type", "").startswith("text/plain")
+    assert response.text() == "Bad Request"
 
 
 def test_put_rejects_malformed_json_without_modifying_booking(
@@ -41,10 +44,12 @@ def test_put_rejects_malformed_json_without_modifying_booking(
         },
     )
 
-    assert response.status in (400, 422), (
+    assert response.status == 400, (
         f"Expected malformed JSON rejection, got HTTP "
         f"{response.status}. Body: {response.text()}"
     )
+    assert response.headers.get("content-type", "").startswith("text/plain")
+    assert response.text() == "Bad Request"
 
     get_response = api_client.get(
         f"/booking/{booking_id}",

@@ -57,8 +57,8 @@ No perfil completo, o k6 alcançou os 500 VUs configurados, registrou 150.000 re
 
 Para reproduzir o perfil completo, execute na raiz do repositório:
 
-```bash
-make test-load
+```text
+python3 scripts/run_load.py load
 ```
 
-O resumo é gravado em `reports/performance/load-summary.json` e a saída legível em `reports/performance/load-summary.txt`. Para repetir o smoke, execute `make test-load-smoke`.
+O resumo é gravado em `reports/performance/load-summary.json` e a saída legível em `reports/performance/load-summary.txt`. Para repetir o smoke, execute `python3 scripts/run_load.py smoke`. No PowerShell, substitua `python3` por `py -3.12`. Make permanece opcional.

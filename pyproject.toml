@@ -9,6 +9,7 @@ dependencies = []
 testpaths = ["api/tests"]
 addopts = "-ra"
 markers = [
+    "isolated_auth: authentication-negative tests require disposable loopback API and explicit opt-in",
     "quality_finding: known API discrepancy run separately as a diagnostic finding",
 ]
 

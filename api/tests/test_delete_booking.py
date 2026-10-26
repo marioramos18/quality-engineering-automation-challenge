@@ -24,17 +24,11 @@ def test_delete_existing_booking(
         f"Response: {response.text()}"
     )
 
-    # The demonstration API may return an empty body or "Created".
-    body = response.text().strip()
-    assert body in ("", "Created"), (
-        f"Unexpected deletion response body: {body!r}"
+    assert response.text() == "Created"
+    content_type = response.headers.get("content-type", "")
+    assert content_type.startswith("text/plain"), (
+        f"Unexpected Content-Type: {content_type}"
     )
-
-    if body:
-        content_type = response.headers.get("content-type", "")
-        assert content_type.startswith("text/plain"), (
-            f"Unexpected Content-Type: {content_type}"
-        )
 
     # Assert: booking must no longer be accessible
     get_response = api_client.get(

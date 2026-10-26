@@ -1,6 +1,8 @@
 import pytest
 from playwright.sync_api import APIRequestContext, APIResponse
 
+pytestmark = pytest.mark.isolated_auth
+
 
 @pytest.mark.parametrize(
     "cookie",
@@ -36,6 +38,8 @@ def test_update_booking_without_valid_auth_is_denied(
     assert response.status == 403, (
         f"Expected HTTP 403, received {response.status}"
     )
+    assert response.headers.get("content-type", "").startswith("text/plain")
+    assert response.text() == "Forbidden"
 
     # Assert: original data has not been modified
     get_response = api_client.get(f"/booking/{booking_id}")
@@ -70,6 +74,8 @@ def test_delete_booking_without_valid_auth_is_denied(
     assert response.status == 403, (
         f"Expected HTTP 403, received {response.status}"
     )
+    assert response.headers.get("content-type", "").startswith("text/plain")
+    assert response.text() == "Forbidden"
 
     # Assert: booking must still exist
     get_response = api_client.get(f"/booking/{booking_id}")

@@ -33,6 +33,8 @@ O endereço demonstrativo é preenchido a partir da resposta de `/postcode-looku
 
 A API cria dados independentes e tenta remover somente as reservas criadas pelo próprio teste. `.env.example` contém a conta pública demonstrativa; uma instância autorizada alternativa usa URL e credenciais de seu próprio `.env`. Não há credenciais privadas versionadas.
 
+A regressão completa agora usa `scripts/run_api.py`: imagem do autor fixada por digest, container por execução e porta aleatória publicada somente em loopback. As credenciais demonstrativas ficam em `api/isolated/credentials.env`; segredos herdados do host não são usados. A coleta bloqueia os seis negativos de autenticação/autorização fora de loopback com opt-in explícito. Redirects HTTP ficam desativados. O runner salva logs e ambiente e remove somente seu próprio projeto Docker. Treze testes verificam a proteção e a remoção de evidências antigas em falha de pré-requisito.
+
 O API-001 espera HTTP 400/422 e recebe 500. Continua FAILED em diagnóstico separado; o CI registra o resultado original da etapa com `continue-on-error`, sem apresentá-lo como aprovado. A classificação definitiva como defeito contratual depende da especificação. Não usar XFAIL, SKIP ou aceitar 500 como solução.
 
 Os dados de cartão são sintéticos. O Toolshop valida formato e simula sucesso; não há gateway bancário. A auditoria do pedido consulta o banco por uma rota independente da resposta de criação. A fila de email não é processada nesta entrega; entrega de email não está sendo comprovada.
@@ -45,14 +47,15 @@ Durante a validação da instância privada, uma execução encontrou HTTP 422 n
 
 ## Pendências e estratégia de conclusão
 
-A validação remota de API, E2E completo e mobile foi concluída no PR #2. [Registro do commit, resultados e artifacts](evidence/ci-validation.md).
+A validação remota anterior de API, E2E completo e mobile foi concluída no PR #2. [Registro do commit, resultados e artifacts](evidence/ci-validation.md). A revisão local atual tem [evidências separadas](evidence/local-validation.md) e ainda não foi validada remotamente.
 
 | Prioridade | Item restante | Próxima ação | Critério de aceite |
 | --- | --- | --- | --- |
-| Média | Contratos negativos da API | Confirmar especificação e adicionar headers/corpos onde definidos | Negativos com contrato explícito, sem pressupor status arbitrários |
-| Média | API-001 | Confirmar contrato e manter diagnóstico rastreável | Classificação fundamentada; resultado real preservado |
+| Alta | Publicação e CI da revisão atual | Após autorização de commit, publicar o diff e acompanhar API, E2E, mobile e proteções Python Windows/macOS | Relatórios do commit efetivamente publicado; falhas ambientais separadas de assertions |
+| Média | Contratos negativos da API | [Revisão da implementação](api-error-contracts.md) acrescenta status exatos, media type e corpo em 11 casos; falta contrato normativo e revisão implantada | Distinguir caracterização da implementação de especificação publicada |
+| Média | API-001 | Inspeção fundamenta problema de tratamento de entrada; confirmar status normativo com mantenedor | Resultado FAILED preservado; não afirmar violação de status publicado |
 | Média | Windows/macOS/Apple Silicon | Reproduzir comandos em instalações limpas com Docker Desktop | Relatórios por sistema/arquitetura; documentar incompatibilidades de imagem |
-| Média | Outro ambiente configurado | Executar subconjunto compatível em segunda instância autorizada | Nenhuma alteração de código ou vazamento de credenciais |
-| Baixa | Semântica mobile | Se a avaliação exigir envio remoto, escolher app/fluxo que o ofereça | Diferenciar persistência local de submissão a backend |
+| Média | Segundo ambiente Web | A API foi comprovada em privado e no público com seleção segura; Web permite configuração, mas segunda origem ainda não foi validada | Mesmos Page Objects e steps em instância compatível sem alteração de código |
+| Baixa | Endereço no checkout | Explicitar ao avaliador que os cinco negativos usam Billing Address | Não apresentar como comprovada etapa distinta de entrega |
 
 A execução Linux comprova somente esse ambiente. Scripts Python evitam Bash/Make para E2E/carga, mas isso não comprova Docker Desktop nos demais sistemas. O host atual não possui Android SDK, adb ou KVM; resultados mobile devem vir de um runner preparado.

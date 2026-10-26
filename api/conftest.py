@@ -6,6 +6,20 @@ from uuid import uuid4
 import pytest
 from playwright.sync_api import APIRequestContext, APIResponse, Playwright
 
+from api.safety import require_isolated_auth
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    if any(item.get_closest_marker("isolated_auth") for item in items):
+        try:
+            require_isolated_auth(
+                os.getenv("BOOKER_BASE_URL", "https://restful-booker.herokuapp.com"),
+                os.getenv("BOOKER_ALLOW_NEGATIVE_AUTH"),
+            )
+        except ValueError as error:
+            raise pytest.UsageError(str(error)) from error
+
 
 @pytest.fixture(scope="session")
 def api_client(playwright: Playwright) -> Iterator[APIRequestContext]:
@@ -17,6 +31,7 @@ def api_client(playwright: Playwright) -> Iterator[APIRequestContext]:
     context = playwright.request.new_context(
         base_url=base_url,
         timeout=20_000,
+        max_redirects=0,
     )
     yield context
     context.dispose()

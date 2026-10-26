@@ -2,11 +2,13 @@
 
 Monorepo do desafio de automação: API, E2E Web, Android e carga. O E2E completo executa em uma instância **privada e descartável** do Toolshop, com imagens fixadas por digest, banco próprio e dados demonstrativos. Não depende do acesso à aplicação pública nem realiza pagamentos reais.
 
+A [revisão de aderência ao desafio e ao feedback](docs/feedback-alignment.md) relaciona as solicitações dos avaliadores às implementações, evidências e pendências. O [roteiro do avaliador](docs/evaluator-guide.md) reúne os comandos por sistema e a localização dos relatórios.
+
 ## Tecnologias e arquitetura
 
 | Área | Ferramentas e versões | Aplicação |
 | --- | --- | --- |
-| API | Python 3.12, Pytest 9.1.1, pytest-playwright 0.10.0 | Restful Booker público ou instância autorizada |
+| API | Python 3.12, Pytest 9.1.1, pytest-playwright 0.10.0 | Restful Booker privado e descartável; subconjunto seguro em outro destino |
 | E2E | TypeScript 7.0.2, Cucumber.js 13.3.0, Playwright 1.64.1 | Toolshop Sprint 5 isolado |
 | Mobile | Appium 3.7.0, UiAutomator2 8.7.0, Python 3.12 | WebdriverIO Native Demo App 2.2.0, Android API 35 |
 | Carga | k6 1.5.0, Node.js, Docker Compose | Mock local em rede interna |
@@ -15,7 +17,7 @@ Monorepo do desafio de automação: API, E2E Web, Android e carga. O E2E complet
 `uv.lock` e `web/package-lock.json` fixam as dependências. As imagens do Toolshop, MariaDB e Nginx estão fixadas por digest em `web/isolated/compose.yaml`.
 
 ```text
-api/                     Fixtures, contratos HTTP e cenários negativos
+api/                     Fixtures, contratos HTTP, proteção e Compose isolado
 web/features/            Cenários Gherkin de negócio
 web/steps/               Orquestração e assertivas
 web/pages/               Locators e interações de interface
@@ -24,7 +26,7 @@ web/tests/               Testes das restrições de isolamento
 web/isolated/            Compose privado e proxy da API
 mobile/pages/, tests/    Page Objects Android, fixtures e testes Appium
 performance/             Mock e cenário k6
-scripts/                 Comandos Python portáteis de E2E e carga
+scripts/                 Comandos Python portáteis de API, E2E e carga
 .github/workflows/       Pipelines e publicação de evidências
 docs/                    Estratégia, achados, resultados e pendências
 ```
@@ -40,7 +42,7 @@ git clone https://github.com/marioramos18/quality-engineering-automation-challen
 cd quality-engineering-automation-challenge
 ```
 
-Instale Git e Python 3.12. Para E2E/carga, instale Docker com Compose v2. Para API, instale também [uv](https://docs.astral.sh/uv/getting-started/installation/). Não é necessário Node no host para o E2E em Docker. O primeiro download das imagens pode demorar vários minutos e consumir alguns GB.
+Instale Git e Python 3.12. Para as suítes completas de API/E2E e para carga, instale Docker com Compose v2. Para API, instale também [uv](https://docs.astral.sh/uv/getting-started/installation/). Não é necessário Node no host para o E2E em Docker. O primeiro download das imagens pode demorar vários minutos e consumir alguns GB.
 
 | Sistema | Preparação | E2E completo | Carga smoke |
 | --- | --- | --- | --- |
@@ -88,19 +90,23 @@ Não execute duas sessões simultâneas gravando na mesma pasta de relatórios. 
 
 ### API
 
-Os mesmos comandos funcionam em Bash e PowerShell, sem continuação de linha:
+Execute a regressão completa em ambiente privado. O runner instala as dependências bloqueadas, verifica Ruff, inicia um container descartável com porta aleatória somente em `127.0.0.1`, aguarda a saúde da API e executa os testes. O container e sua rede são removidos ao terminar. Nenhum dado do serviço público é usado.
 
 ```text
-uv sync --locked --dev
-uv run --locked ruff check api
-uv run --locked --env-file .env.example pytest api/tests -m "not quality_finding" -v --html=reports/api-regression/report.html --self-contained-html --junitxml=reports/api-regression/junit.xml
+python3 scripts/run_api.py
 ```
+
+No Windows PowerShell: `py -3.12 scripts/run_api.py`. No Linux/macOS, confirme que o Python selecionado é o instalado; o ambiente dos testes é Python 3.12, gerenciado pelo uv. As credenciais demonstrativas da imagem ficam em `api/isolated/credentials.env`, fora dos testes e do runner. Credenciais privadas herdadas do host são descartadas nesse modo. A imagem do autor é fixada por digest e usa `linux/amd64`; Apple Silicon depende de emulação do Docker Desktop e ainda não foi validado.
+
+Os contratos negativos revisados verificam status, media type e corpo em 11 casos. [Fontes, validação local e limites](docs/api-error-contracts.md).
 
 O achado conhecido é executado separadamente, preservando a falha:
 
 ```text
-uv run --locked --env-file .env.example pytest api/tests/test_required_fields_negative.py::test_post_rejects_missing_firstname -v --html=reports/api-quality-findings/report.html --self-contained-html --junitxml=reports/api-quality-findings/junit.xml
+python3 scripts/run_api.py --finding
 ```
+
+No PowerShell: `py -3.12 scripts/run_api.py --finding`. O retorno não zero preserva o achado; não significa falha de instalação. Relatórios HTML/JUnit, log Pytest, log do serviço e identificação do ambiente ficam em `reports/api-regression/` ou `reports/api-quality-findings/`. Abra `report.html` no navegador. Não execute duas sessões na mesma pasta de relatórios. Em encerramento forçado, identifique somente o projeto `quality-api-*` dessa execução antes de remover seus recursos.
 
 Python foi escolhido pela clareza dos testes, fixtures e parametrização do Pytest, preparação/limpeza de reservas e relatórios HTML/JUnit. O cliente HTTP do Playwright dispensa navegador. A linguagem também é utilizada no mobile. O trade-off é manter os ecossistemas Python e TypeScript, cada um com seu lockfile.
 
@@ -108,13 +114,21 @@ Python foi escolhido pela clareza dos testes, fixtures e parametrização do Pyt
 
 | Modalidade | Variáveis | Onde configurar |
 | --- | --- | --- |
-| API | `BOOKER_BASE_URL`, `BOOKER_USERNAME`, `BOOKER_PASSWORD` | `.env` privado ou secrets do CI |
+| API externo | `BOOKER_BASE_URL`, `BOOKER_USERNAME`, `BOOKER_PASSWORD` | `.env` privado ou secrets do CI |
+| API negativo de autenticação | `BOOKER_ALLOW_NEGATIVE_AUTH=1` e destino loopback descartável | Runner privado configura automaticamente |
 | Web externo | `WEB_BASE_URL`, `E2E_CUSTOMER_EMAIL`, `E2E_CUSTOMER_PASSWORD` | Ambiente do processo Cucumber |
 | Checkout isolado | `E2E_ALLOW_ORDER_CREATION`, `E2E_API_BASE_URL`, `E2E_AUDIT_EMAIL`, `E2E_AUDIT_PASSWORD` | Compose privado já configurado |
 | Login negativo | `E2E_ALLOW_NEGATIVE_AUTH=1` e destino loopback | Compose privado já configurado |
 | Evidências Web | `E2E_REPORT_DIR`, `E2E_CAPTURE_SUCCESS` | Processo Cucumber; definidos no Compose |
 
-A API lê credenciais do ambiente. `.env.example` contém somente a conta pública demonstrativa. Para outro destino, copie o exemplo para `.env`, altere as três variáveis e troque `--env-file .env.example` por `--env-file .env` nos comandos. Não registre segredos privados no Git.
+A API lê credenciais do ambiente. `.env.example` contém somente a conta pública demonstrativa. Para outro destino compatível autorizado, copie o exemplo para `.env` e altere as três variáveis. Não registre segredos privados no Git. Execute o subconjunto seguro com os mesmos testes, sem autenticação negativa:
+
+```text
+uv sync --locked --dev
+uv run --locked --env-file .env pytest api/tests -m "not quality_finding and not isolated_auth" -v --html=reports/api-external/report.html --self-contained-html --junitxml=reports/api-external/junit.xml
+```
+
+Esse comando é igual em Bash e PowerShell. O marcador seleciona explicitamente o subconjunto compatível; não há skips para ocultar falhas. A regressão completa continua obrigatória no runner privado. Selecionar autenticação negativa sem opt-in e loopback encerra a coleta com erro antes das requisições. Redirects HTTP são desativados. Somente reservas criadas pelo próprio teste são atualizadas/removidas.
 
 O executor isolado é intencionalmente fixado em seu próprio ambiente; não reaproveita uma URL externa para apagar dados. Para executar apenas os cenários públicos seguros ou autenticação positiva em outro ambiente compatível, instale Node/npm e Chromium:
 
@@ -140,7 +154,7 @@ O perfil completo fixa **500 VUs por 5 minutos**. O mock fica em rede interna; n
 
 ### Mobile
 
-O caminho reproduzível atual é o workflow **Mobile Android Tests**: Actions → workflow → Run workflow. Ele prepara Java, Android API 35, KVM, APK com checksum, Appium e UiAutomator2, executa os dois testes e publica HTML/JUnit/logs. Também roda em push na `main` e PR para `main`.
+O caminho reproduzível atual é o workflow **Mobile Android Tests**: Actions → workflow → Run workflow. Ele prepara Java, Android API 35, KVM, APK com checksum, Appium e UiAutomator2, executa os dois testes e publica HTML/JUnit/logs. Nesta revisão, roda em push em qualquer branch e PR para `main`.
 
 O login é simulado pelo aplicativo. O segundo teste salva um valor em Data Management e o recupera após reiniciar o processo. Não há autenticação nem envio a backend. A execução local exige Android SDK, dispositivo/emulador, APK e Appium configurados; não está incluída nos comandos E2E. [Detalhes mobile](docs/mobile-feasibility.md).
 
@@ -149,6 +163,8 @@ O login é simulado pelo aplicativo. O segundo teste salva um valor em Data Mana
 | Área | Resultado local verificado | Relatório |
 | --- | --- | --- |
 | API regressão | 22 aprovados, 0 falhas, 0 ignorados | `reports/api-regression/` |
+| Proteções da API e runner | 13 aprovados, 0 falhas, 0 ignorados | `reports/api-guards/` |
+| API em outro destino | 16 aprovados no público; 7 desmarcados pela seleção segura | `reports/api-external/` |
 | API-001 | 1 falha: HTTP 500 ao omitir `firstname` | `reports/api-quality-findings/` |
 | Web isolado | 17 cenários e 103 passos aprovados; 4 testes de isolamento e typecheck aprovados | `reports/e2e-isolated/` |
 | Carga completa | 500 VUs, 5 min, 150.000 requisições, 0% erros, 3 thresholds aprovados | `reports/performance/` |
@@ -156,14 +172,16 @@ O login é simulado pelo aplicativo. O segundo teste salva um valor em Data Mana
 
 API, E2E e mobile passaram no GitHub Actions para o commit `d40edc7`: [resultados, tempos e artifacts](docs/evidence/ci-validation.md). O API-001 permanece FAILED no diagnóstico separado.
 
+A [validação local da revisão atual](docs/evidence/local-validation.md) registra a API privada, o segundo destino, o E2E e o smoke de carga. As alterações locais ainda precisam ser publicadas e verificadas no CI.
+
 O HTML E2E inclui screenshots dos cenários e, na compra, o identificador e os valores do pedido consultado. Também são gerados JUnit, `cucumber.log`, `services.log` e JSON/PNG de diagnóstico em falhas. `reports/` é ignorado pelo Git; os artifacts do CI preservam os resultados da execução. A [matriz de cobertura e pendências](docs/test-strategy.md) distingue resultado local, histórico remoto e itens ainda não comprovados.
 
 ## CI e facilitadores
 
 | Workflow | Gatilhos | Comportamento |
 | --- | --- | --- |
-| Quality | Push na `main`, PR, manual | Regressão API, diagnóstico API-001 e E2E completo isolado com typecheck |
-| Mobile Android Tests | Push na `main`, PR para `main`, manual | Dois testes Android em emulador |
+| Quality | Push em qualquer branch, PR, manual | API privada, diagnóstico API-001, E2E isolado com typecheck e proteções Python nativas em Windows/macOS |
+| Mobile Android Tests | Push em qualquer branch, PR para `main`, manual | Dois testes Android em emulador |
 | Performance | Manual, `smoke` ou `load` | Mock privada e thresholds k6 |
 
 Uploads usam `if: always()`. O API-001 continua não bloqueante apenas na etapa diagnóstica com `continue-on-error`, mas seu resultado original é registrado; não integra os 22 testes aprovados. Regressão API e E2E são bloqueantes. O histórico de Cloudflare no serviço público permanece documentado, mas o novo job E2E utiliza a instância privada.

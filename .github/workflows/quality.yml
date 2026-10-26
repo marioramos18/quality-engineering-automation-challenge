@@ -2,7 +2,7 @@ name: Quality
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
   workflow_dispatch:
 
@@ -10,9 +10,41 @@ permissions:
   contents: read
 
 jobs:
+  portable-python:
+    name: Python guards (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+      - name: Install locked dependencies
+        run: uv sync --locked --dev
+      - name: Isolation guards without Docker
+        run: uv run --locked pytest tests -v --junitxml=reports/portable/junit.xml
+      - name: API runner entrypoint
+        run: python scripts/run_api.py --help
+      - name: E2E runner entrypoint
+        run: python scripts/run_e2e.py --help
+      - name: Load runner entrypoint
+        run: python scripts/run_load.py --help
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-guards-${{ matrix.os }}
+          path: reports/portable/
+          if-no-files-found: warn
+
   api-tests:
     name: API Tests
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -25,36 +57,40 @@ jobs:
         id: install
         run: uv sync --locked --dev
       - name: Ruff
-        run: uv run --locked ruff check api
+        run: uv run --locked ruff check api scripts tests
+      - name: API isolation guards
+        run: uv run --locked pytest tests -v --junitxml=reports/api-guards/junit.xml
       - name: Pytest regression
-        run: |
-          mkdir -p reports/api-regression
-          set -o pipefail
-          uv run --locked --env-file .env.example pytest api/tests -m "not quality_finding" -v \
-            --html=reports/api-regression/report.html --self-contained-html \
-            --junitxml=reports/api-regression/junit.xml \
-            2>&1 | tee reports/api-regression/pytest.log
+        run: python scripts/run_api.py
       - name: Pytest known finding API-001
         id: api_finding
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         continue-on-error: true
-        run: |
-          mkdir -p reports/api-quality-findings
-          set -o pipefail
-          uv run --locked --env-file .env.example pytest \
-            api/tests/test_required_fields_negative.py::test_post_rejects_missing_firstname \
-            -m quality_finding -v \
-            --html=reports/api-quality-findings/report.html --self-contained-html \
-            --junitxml=reports/api-quality-findings/junit.xml \
-            2>&1 | tee reports/api-quality-findings/pytest.log
+        run: python scripts/run_api.py --finding
       - name: Summarize API finding
         if: always()
+        env:
+          FINDING_OUTCOME: ${{ steps.api_finding.outcome }}
         run: |
-          printf '### API-001 — diagnóstico separado\n\n' >> "$GITHUB_STEP_SUMMARY"
-          printf 'Resultado original da etapa Pytest: **%s**.\n' \
-            '${{ steps.api_finding.outcome }}' >> "$GITHUB_STEP_SUMMARY"
-          printf 'Um resultado failure indica que o teste continua FAILED; a etapa não integra a regressão aprovada.\n' \
-            >> "$GITHUB_STEP_SUMMARY"
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          report = Path('reports/api-quality-findings/junit.xml')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as output:
+              output.write('### API-001 — diagnóstico separado\n\n')
+              output.write(f"Resultado original da etapa: **{os.environ['FINDING_OUTCOME']}**.\n")
+              if report.exists():
+                  suites = list(ET.parse(report).getroot().iter('testsuite'))
+                  totals = {key: sum(int(s.get(key, 0)) for s in suites)
+                            for key in ('tests', 'failures', 'errors', 'skipped')}
+                  output.write(f"JUnit: {totals}.\n")
+                  output.write('Consulte a assertion no relatório para distinguir divergência de contrato de erro ambiental.\n')
+              else:
+                  output.write('JUnit ausente: teste não comprovado; inspecione instalação e logs do serviço.\n')
+              output.write('Diagnóstico não integra a regressão aprovada.\n')
+          PY
       - name: Upload API reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -63,6 +99,7 @@ jobs:
           path: |
             reports/api-regression/
             reports/api-quality-findings/
+            reports/api-guards/
           if-no-files-found: warn
 
   e2e:
