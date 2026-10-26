@@ -1,6 +1,6 @@
 # Validação local da revisão — 25/10/2026
 
-Execução na árvore de trabalho baseada em `1117221`, ainda sem commit das alterações atuais. Ambiente Linux x86_64, Docker Compose 2.35.1, testes API em Python 3.12.8. Estes resultados não substituem validação remota do próximo commit.
+Registro da execução local anterior à publicação: árvore de trabalho baseada em `1117221`, posteriormente publicada em `0c44395`. A correção Android posterior e o CI aprovado do código `3ad8224` estão em [ci-validation.md](ci-validation.md). Ambiente Linux x86_64, Docker Compose 2.35.1, testes API em Python 3.12.8. Estes resultados não substituem validação remota do próximo commit.
 
 | Área | Resultado | Evidência local |
 | --- | --- | --- |
@@ -26,6 +26,6 @@ As execuções finais removeram seus próprios containers, redes e volume E2E. T
 
 ## Limites
 
-Mobile mantém a evidência remota anterior de dois testes aprovados; não há Android SDK/KVM neste host para uma nova execução local. Docker Desktop em Windows/macOS/Apple Silicon não foi executado. As verificações nativas Python Windows/macOS estão configuradas no CI, ainda sem execução desta revisão. Uma segunda origem Web também não foi validada.
+Mobile mantém a evidência remota anterior de dois testes aprovados; não há Android SDK/KVM neste host para uma nova execução local. Docker Desktop em Windows/macOS/Apple Silicon não foi executado. As verificações nativas Python Windows/macOS e o mobile foram posteriormente aprovados no CI do código `3ad8224`, conforme registro remoto. Uma segunda origem Web também não foi validada.
 
 O endereço da aplicação é de cobrança; não se comprova etapa distinta de entrega. O envio do formulário mobile é local via Save e leitura do valor persistido. O diagnóstico API-001 não impede entregar a análise do desafio, mas permanece uma falha explícita.

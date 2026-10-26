@@ -15,6 +15,8 @@ Rastreabilidade da tarefa 2 do PDF: `test_persisted_value_is_recovered_after_res
 
 ## Resultado comprovado no GitHub Actions
 
+A revisão final `3ad8224` aprovou os dois testes em **70,78 s**, sem falhas ou skips: [Mobile no PR](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/40251176449). O preparo agora encerra uma vez o Pixel Launcher travado quando reconhece seu alerta específico, preserva evidências e exige Home antes dos cenários. A execução anterior que falhou após selecionar Wait está preservada no [registro de CI](evidence/ci-validation.md). As assertions e o APK não foram alterados. Os resultados abaixo são históricos.
+
 Atualização de 25/10/2026: a execução [Mobile #15 no PR #2](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/40223251298) aprovou os dois testes em **79,65 s**, sem falhas nem ignorados, e publicou o artifact. Isso também comprova o gatilho de `pull_request` para essa versão. [Registro consolidado](evidence/ci-validation.md). O histórico abaixo descreve execuções anteriores.
 
 A execução **Mobile Android POC #7** passou em um runner `ubuntu-24.04` com emulador Android API 35 x86_64, APK v2.2.0, Appium 3.7.0, UiAutomator2 8.7.0, Python 3.12 e Pytest:

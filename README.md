@@ -170,9 +170,9 @@ O login é simulado pelo aplicativo. O segundo teste salva um valor em Data Mana
 | Carga completa | 500 VUs, 5 min, 150.000 requisições, 0% erros, 3 thresholds aprovados | `reports/performance/` |
 | Mobile | 2 aprovados no PR atual; host local sem Android SDK/KVM | `reports/mobile/` no artifact |
 
-API, E2E e mobile passaram no GitHub Actions para o commit `d40edc7`: [resultados, tempos e artifacts](docs/evidence/ci-validation.md). O API-001 permanece FAILED no diagnóstico separado.
+API, E2E, mobile e proteções Python Windows/macOS passaram no GitHub Actions para o commit `3ad8224`: [resultados, tempos e artifacts](docs/evidence/ci-validation.md). O API-001 permanece FAILED no diagnóstico separado.
 
-A [validação local da revisão atual](docs/evidence/local-validation.md) registra a API privada, o segundo destino, o E2E e o smoke de carga. As alterações locais ainda precisam ser publicadas e verificadas no CI.
+A [validação local da revisão atual](docs/evidence/local-validation.md) registra a API privada, o segundo destino, o E2E e o smoke de carga. As alterações foram publicadas; a evidência remota do código validado está no registro de CI acima.
 
 O HTML E2E inclui screenshots dos cenários e, na compra, o identificador e os valores do pedido consultado. Também são gerados JUnit, `cucumber.log`, `services.log` e JSON/PNG de diagnóstico em falhas. `reports/` é ignorado pelo Git; os artifacts do CI preservam os resultados da execução. A [matriz de cobertura e pendências](docs/test-strategy.md) distingue resultado local, histórico remoto e itens ainda não comprovados.
 

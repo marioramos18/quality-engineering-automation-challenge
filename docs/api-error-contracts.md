@@ -29,4 +29,4 @@ Comando executado:
 uv run --locked --env-file .env.example pytest api/tests/test_required_fields_negative.py api/tests/test_malformed_payload.py api/tests/test_invalid_resources_and_methods.py -m "not quality_finding" -v --html=reports/api-contract-review/report.html --self-contained-html --junitxml=reports/api-contract-review/junit.xml
 ```
 
-O diagnóstico API-001 foi desmarcado nessa seleção inicial. A validação final posterior aprovou 22 testes na instância privada, 13 testes de proteção/runner e 16 testes seguros no público. O API-001 foi reexecutado separadamente e falhou por 500. O CI da revisão atual ainda não foi executado. [Evidências finais locais e comandos](evidence/local-validation.md).
+O diagnóstico API-001 foi desmarcado nessa seleção inicial. A validação final posterior aprovou 22 testes na instância privada, 13 testes de proteção/runner e 16 testes seguros no público. O API-001 foi reexecutado separadamente e falhou por 500. O CI do commit `3ad8224` aprovou a regressão privada e preservou a falha diagnóstica, conforme [registro remoto](evidence/ci-validation.md). [Evidências finais locais e comandos](evidence/local-validation.md).

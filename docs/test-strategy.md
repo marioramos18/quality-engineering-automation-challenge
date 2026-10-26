@@ -47,11 +47,10 @@ Durante a validação da instância privada, uma execução encontrou HTTP 422 n
 
 ## Pendências e estratégia de conclusão
 
-A validação remota anterior de API, E2E completo e mobile foi concluída no PR #2. [Registro do commit, resultados e artifacts](evidence/ci-validation.md). A revisão local atual tem [evidências separadas](evidence/local-validation.md) e ainda não foi validada remotamente.
+A validação remota anterior de API, E2E completo e mobile foi concluída no PR #2. [Registro do commit, resultados e artifacts](evidence/ci-validation.md). A revisão final `3ad8224` foi validada remotamente com API, E2E, mobile e checks Python Windows/macOS aprovados; consulte o mesmo registro. As [evidências locais](evidence/local-validation.md) permanecem separadas.
 
 | Prioridade | Item restante | Próxima ação | Critério de aceite |
 | --- | --- | --- | --- |
-| Alta | Publicação e CI da revisão atual | Após autorização de commit, publicar o diff e acompanhar API, E2E, mobile e proteções Python Windows/macOS | Relatórios do commit efetivamente publicado; falhas ambientais separadas de assertions |
 | Média | Contratos negativos da API | [Revisão da implementação](api-error-contracts.md) acrescenta status exatos, media type e corpo em 11 casos; falta contrato normativo e revisão implantada | Distinguir caracterização da implementação de especificação publicada |
 | Média | API-001 | Inspeção fundamenta problema de tratamento de entrada; confirmar status normativo com mantenedor | Resultado FAILED preservado; não afirmar violação de status publicado |
 | Média | Windows/macOS/Apple Silicon | Reproduzir comandos em instalações limpas com Docker Desktop | Relatórios por sistema/arquitetura; documentar incompatibilidades de imagem |
