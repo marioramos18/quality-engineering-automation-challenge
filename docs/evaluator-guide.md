@@ -46,16 +46,18 @@ uv run --locked --env-file .env pytest api/tests -m "not quality_finding and not
 
 Esse subconjunto foi validado no serviço público com 16 testes; os seis negativos de autenticação/autorização e o diagnóstico são desmarcados intencionalmente, não ignorados por skip. A regressão completa de 22 testes permanece no runner privado. A proteção bloqueia negativos de autenticação fora de loopback, mesmo com opt-in. Não versione `.env` privado.
 
-Web: configure `WEB_BASE_URL`, `E2E_CUSTOMER_EMAIL` e `E2E_CUSTOMER_PASSWORD` antes do Cucumber. Bash usa `export NOME=valor`; PowerShell usa `$env:NOME="valor"`. Instale Node/npm compatíveis com `web/package-lock.json` e execute:
+Web: configure `WEB_BASE_URL` antes do Cucumber. Bash usa `export NOME=valor`; PowerShell usa `$env:NOME="valor"`. Para login positivo em uma instância própria autorizada, configure também `E2E_CUSTOMER_EMAIL` e `E2E_CUSTOMER_PASSWORD`. Instale Node/npm compatíveis com `web/package-lock.json` e execute o subconjunto sem autenticação:
 
 ```text
 cd web
 npm ci --no-audit --no-fund
 npx playwright install chromium
-npm test -- --tags "@checkout-safe or @login or @account-navigation or @login-validation"
+npm test -- --tags "@checkout-safe or @login-validation"
 ```
 
 Use somente instância Toolshop compatível e conta autorizada. Os Page Objects recebem configuração; não se altera código para trocar a origem. Negativos e pedidos devem usar o runner privado, que não reaproveita URLs externas para limpeza de dados.
+
+No serviço público, a [execução da segunda origem](evidence/web-second-origin.md) aprovou esses 10 cenários. A conta pública compartilhada estava bloqueada durante a tentativa dos dois logins positivos; não repita autenticação nessa conta. Defina `E2E_REPORT_DIR` para preservar o relatório da segunda origem separadamente.
 
 ## Diagnóstico e limites de plataforma
 

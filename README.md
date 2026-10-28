@@ -143,18 +143,20 @@ uv run --locked --env-file .env pytest api/tests -m "not quality_finding and not
 
 Esse comando é igual em Bash e PowerShell. O marcador seleciona explicitamente o subconjunto compatível; não há skips para ocultar falhas. A regressão completa continua obrigatória no runner privado. Selecionar autenticação negativa sem opt-in e loopback encerra a coleta com erro antes das requisições. Redirects HTTP são desativados. Somente reservas criadas pelo próprio teste são atualizadas/removidas.
 
-O executor isolado é intencionalmente fixado em seu próprio ambiente; não reaproveita uma URL externa para apagar dados. Para executar apenas os cenários públicos seguros ou autenticação positiva em outro ambiente compatível, instale Node/npm e Chromium:
+O executor isolado é intencionalmente fixado em seu próprio ambiente; não reaproveita uma URL externa para apagar dados. Para executar apenas os cenários seguros em outro ambiente compatível, instale Node/npm e Chromium:
 
 ```text
 cd web
 npm ci --no-audit --no-fund
 npx playwright install chromium
-npm test -- --tags "@checkout-safe or @login or @account-navigation or @login-validation"
+npm test -- --tags "@checkout-safe or @login-validation"
 ```
 
-Defina as variáveis **antes** do comando: Bash usa `export WEB_BASE_URL=...`; PowerShell usa `$env:WEB_BASE_URL="..."`. Informe o par de credenciais do destino. O fallback público é usado apenas quando nenhuma credencial foi informada e a URL é exatamente a demonstração pública. O mesmo código utiliza rotas e locators da versão compatível do Toolshop.
+Defina `WEB_BASE_URL` **antes** do comando: Bash usa `export WEB_BASE_URL=...`; PowerShell usa `$env:WEB_BASE_URL="..."`. Para executar `@login` e `@account-navigation` em uma instância própria autorizada, informe também `E2E_CUSTOMER_EMAIL` e `E2E_CUSTOMER_PASSWORD`. O fallback público é usado apenas quando nenhuma credencial foi informada e a URL é exatamente a demonstração pública. O mesmo código utiliza rotas e locators da versão compatível do Toolshop.
 
 Nunca execute autenticação negativa ou criação de pedido no serviço público. Os hooks exigem opt-in e loopback e bloqueiam destinos externos. A auditoria de pedidos usa uma conta administrativa demonstrativa somente na instalação descartável; não altera pedidos pela API.
+
+Na [validação de uma segunda origem Web](docs/evidence/web-second-origin.md), o mesmo código aprovou 10 cenários seguros no serviço público. Os dois cenários de login positivo falharam porque a conta pública compartilhada estava bloqueada; não foram repetidos. A suíte completa continua comprovada na instância privada.
 
 ### Carga
 
@@ -180,12 +182,13 @@ O login é simulado pelo aplicativo. O segundo teste salva um valor em Data Mana
 | API em outro destino | 16 aprovados no público; 7 desmarcados pela seleção segura | `reports/api-external/` |
 | API-001 | 1 falha: HTTP 500 ao omitir `firstname` | `reports/api-quality-findings/` |
 | Web isolado | 17 cenários e 103 passos aprovados; 4 testes de isolamento e typecheck aprovados | `reports/e2e-isolated/` |
+| Web público seguro | 10 cenários e 57 passos aprovados; login positivo público não comprovado | `reports/e2e-public-safe/` |
 | Carga completa | 500 VUs, 5 min, 150.000 requisições, 0% erros, 3 thresholds aprovados | `reports/performance/` |
-| Mobile | 2 aprovados no PR atual; host local sem Android SDK/KVM | `reports/mobile/` no artifact |
+| Mobile | 2 aprovados no PR #2; host local sem Android SDK/KVM | `reports/mobile/` no artifact |
 
 API, E2E, mobile e proteções Python Windows/macOS passaram no GitHub Actions para o commit `3ad8224`: [resultados, tempos e artifacts](docs/evidence/ci-validation.md). O API-001 permanece FAILED no diagnóstico separado.
 
-A [validação local da revisão atual](docs/evidence/local-validation.md) registra a API privada, o segundo destino, o E2E e o smoke de carga. As alterações foram publicadas; a evidência remota do código validado está no registro de CI acima.
+A [validação local anterior](docs/evidence/local-validation.md) registra a API privada, o segundo destino da API, o E2E e o smoke de carga. A [verificação Web em duas origens](docs/evidence/web-second-origin.md) identifica separadamente o código `c35066b` e os resultados locais. A evidência remota de CI acima se refere ao código `3ad8224`; não comprova automaticamente commits posteriores.
 
 O HTML E2E inclui screenshots dos cenários e, na compra, o identificador e os valores do pedido consultado. Também são gerados JUnit, `cucumber.log`, `services.log` e JSON/PNG de diagnóstico em falhas. `reports/` é ignorado pelo Git; os artifacts do CI preservam os resultados da execução. A [matriz de cobertura e pendências](docs/test-strategy.md) distingue resultado local, histórico remoto e itens ainda não comprovados.
 

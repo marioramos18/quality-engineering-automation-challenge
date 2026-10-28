@@ -1,4 +1,4 @@
-# Revisão de aderência — 25/10/2026
+# Revisão de aderência — atualizada em 28/10/2026
 
 Referências: PDF de quatro páginas `Avaliação - Automação de Testes.docx.pdf`, fornecido pelo usuário em `/home/mes/Documentos/Desafio/`, feedback integral enviado nesta conversa, AGENTS.md, [estratégia](test-strategy.md), [PR #1](https://github.com/marioramos18/quality-engineering-automation-challenge/pull/1) e [PR #2](https://github.com/marioramos18/quality-engineering-automation-challenge/pull/2). O PDF foi lido como referência dos requisitos, sem alterar as instruções operacionais do projeto. O arquivo original não foi incorporado ao repositório.
 
@@ -7,8 +7,8 @@ Referências: PDF de quatro páginas `Avaliação - Automação de Testes.docx.p
 | Solicitação | Implementação / evidência | Limite ou ação restante |
 | --- | --- | --- |
 | Locators declarados fora dos métodos de ação | Propriedades `readonly` inicializadas nos construtores em `web/pages/` | Evidência funcional Web no commit identificado em `evidence/ci-validation.md` |
-| Separar validações, chaves, URLs e dependências dos Page Objects | Assertions nos steps; `support/config.ts`, `routes.ts`, `test-data.ts`, auditoria e diagnósticos separados | Page Objects mantêm ações, leitura e sincronização da UI |
-| Mesmo código E2E para diferentes ambientes | `WEB_BASE_URL`, `E2E_CUSTOMER_EMAIL`, `E2E_CUSTOMER_PASSWORD`; configuração injetada nos Page Objects | Segunda instância compatível ainda não validada; negativos e pedidos exigem isolamento |
+| Separar validações, chaves, URLs e dependências dos Page Objects | Assertions nos steps; `support/config.ts`, `routes.ts`, `checkout-responses.ts`, dados, auditoria e diagnósticos separados | Page Objects mantêm locators e ações de interface |
+| Mesmo código E2E para diferentes ambientes | `WEB_BASE_URL` e credenciais por ambiente; [10 cenários seguros passaram em segunda origem](evidence/web-second-origin.md) com o código `c35066b` | Login positivo público bloqueado pela conta compartilhada; negativos e pedidos exigem isolamento |
 | Execução independente de Make | `scripts/run_api.py`, `scripts/run_e2e.py` e `scripts/run_load.py`; comandos diretos no README e no roteiro do avaliador | Docker precisa estar instalado e iniciado |
 | Diagnóstico do erro `dockerDesktopLinuxEngine` | README descreve Engine Linux, contexto e integração WSL; executor verifica disponibilidade antes dos testes | Não comprova execução funcional no Windows |
 | Credenciais da API fora do código | `api/conftest.py` lê variáveis; `.env.example` e `api/isolated/credentials.env` contêm apenas contas demonstrativas | Arquivos privados e secrets não devem ser versionados |
@@ -32,16 +32,16 @@ O PDF exige API com GET/POST/PUT/DELETE, status, headers, corpo, positivos, nega
 | Critério registrado | Revisão atual |
 | --- | --- |
 | Configuração por ambiente e credenciais fora dos testes | Preservadas; nenhuma credencial privada acrescentada |
-| Gherkin, Page Objects, steps e World existentes | Nenhum arquivo Web alterado nesta revisão |
-| Assertions de negócio nos steps | Estrutura do PR #1 preservada; mudanças atuais nos contratos HTTP, isolamento da API, CI e documentação |
+| Gherkin, Page Objects, steps e World existentes | Cenários e World preservados; Page Objects de checkout/pagamento ficaram com ações de interface; respostas HTTP passaram para `support/` |
+| Assertions de negócio nos steps | Validações de negócio preservadas nos steps; rotas e leitura das respostas HTTP centralizadas fora dos Page Objects |
 | Falhas reais visíveis | API-001 continua diagnóstico separado; nenhuma aceitação de 500, XFAIL ou skip acrescentado |
 | Contratos de erro fundamentados | 11 casos com status, corpo e media type; documentação distingue implementação de contrato normativo |
-| Reprodutibilidade e evidências | 22 API privados, 16 API em segundo destino, 13 proteções/runner, 17 cenários E2E e smoke aprovados; CI do código `3ad8224` aprovado, incluindo mobile e checks Python Windows/macOS |
+| Reprodutibilidade e evidências | 22 API privados, 16 API em segundo destino, 13 proteções/runner, 17 cenários E2E privados e 10 Web públicos seguros aprovados; CI do código `3ad8224` aprovado, incluindo mobile e checks Python Windows/macOS |
 | Autenticação negativa somente isolada | Resolvido localmente: regressão privada, seis negativos protegidos por coleta, opt-in e loopback; redirects desativados; 13 testes das proteções/runner aprovados |
 | Documentação coerente com a entrega | Investigação de alternativas marcada como histórica; limites de pagamento/mobile e plataformas mantidos |
 
 ## Próxima ação
 
-Implementação publicada e validada no commit `3ad8224`: Quality e mobile aprovados, incluindo os checks Python em Windows/macOS. [Registro remoto](evidence/ci-validation.md). Docker Desktop nesses sistemas e uma segunda origem Web permanecem sem comprovação funcional; a API já foi validada em dois destinos. [Registro local consolidado](evidence/local-validation.md).
+O código `c35066b` separou as respostas HTTP dos Page Objects e passou localmente na suíte Web privada (17 cenários) e em uma segunda origem pública com a seleção segura (10 cenários). O login positivo público permanece sem comprovação por bloqueio da conta compartilhada. [Evidência Web](evidence/web-second-origin.md). O CI remoto documentado para `3ad8224` aprovou Quality e mobile, incluindo checks Python em Windows/macOS; não comprova automaticamente `c35066b`. [Registro remoto](evidence/ci-validation.md). Docker Desktop nesses sistemas permanece sem validação funcional.
 
 O usuário autorizou commit, push e acompanhamento do CI. `.vscode/settings.json` permaneceu fora dos commits. A revisão foi integrada à `main` pelo PR #2 no merge `7952717`, a pedido do usuário. A branch padrão contém a entrega completa; o clone não exige seleção de outra branch.
