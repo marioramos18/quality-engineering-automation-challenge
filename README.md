@@ -202,7 +202,21 @@ O HTML E2E inclui screenshots dos cenários e, na compra, o identificador e os v
 
 Uploads usam `if: always()`. O API-001 continua não bloqueante apenas na etapa diagnóstica com `continue-on-error`, mas seu resultado original é registrado; não integra os 22 testes aprovados. Regressão API e E2E são bloqueantes. O histórico de Cloudflare no serviço público permanece documentado, mas o novo job E2E utiliza a instância privada.
 
-Em Bash com GNU Make, continuam disponíveis `make help`, `make test-api`, `make test-e2e`, `make test-api-finding`, `make typecheck`, `make test-load-smoke` e `make test-load`. `make test-all` executa API e E2E, sem mobile/carga. `make typecheck` requer Node/npm no host; o executor E2E verifica os tipos dentro do container.
+### Executar com GNU Make
+
+Com Python 3.12, Docker Linux ativo e GNU Make instalados, execute na raiz:
+
+```text
+make test-regression
+make test-load-smoke
+make test-load
+```
+
+`make test-regression` executa API e E2E e informa o resultado de ambos, mesmo quando um falha. O E2E já inclui typecheck e testes de isolamento. `make test-api`, `make test-e2e` e `make typecheck` também podem ser executados separadamente; `make typecheck` requer Node/npm no host. `make test-api-finding` preserva o API-001 e **deve retornar código diferente de zero**. `make help` lista os targets.
+
+No Windows PowerShell, instale GNU Make e use `make PYTHON="py -3.12" test-regression` após `docker info` confirmar o Engine Linux. O Makefile não inicia o Docker Desktop. Esta forma foi preparada para o shell do Windows, mas a execução funcional completa nesse sistema ainda não foi validada. Os comandos Python diretos acima continuam disponíveis.
+
+`make test-all` executa API, E2E, carga smoke, carga completa e mobile; antes de começar verifica os pré-requisitos básicos do Android. Requer Linux/WSL, emulador ativo, `adb`, Appium com UiAutomator2, `uv` e `APK_PATH` apontando para o APK oficial verificado. `make test-mobile` usa o mesmo script do CI. O host desta revisão não possui esse ambiente; o workflow **Mobile Android Tests** é o caminho comprovado. A carga completa dura cerca de cinco minutos. O diagnóstico API-001 fica separado por retornar falha conhecida.
 
 ## Limites e documentação
 

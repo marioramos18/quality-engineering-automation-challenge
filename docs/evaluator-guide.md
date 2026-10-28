@@ -13,6 +13,8 @@ cd quality-engineering-automation-challenge
 
 Abra o terminal nessa raiz. Confira `git --version`, `uv --version`, `docker info` e `docker compose version`. Confira também `python3 --version` no Linux/macOS/WSL ou `py -3.12 --version` no PowerShell. Use o Python 3.12 instalado; o uv gerencia o ambiente Python dos testes API. Não é necessário Make. Node/npm no host só são necessários para executar Web fora do runner Docker.
 
+Se GNU Make estiver instalado, use `make test-regression` para API e E2E; no Windows PowerShell, `make PYTHON="py -3.12" test-regression`. O Makefile oferece `make test-api`, `make test-e2e`, `make test-api-finding`, `make typecheck`, `make test-load-smoke`, `make test-load` e `make test-mobile`. `make test-all` executa API, E2E, carga e mobile quando houver Linux/WSL, emulador Android ativo, `adb`, Appium, UiAutomator2, `uv` e `APK_PATH` para o APK verificado; faz uma checagem prévia do ambiente mobile. O diagnóstico API-001 retorna erro intencional e fica separado. Os comandos Python abaixo dispensam Make.
+
 ## Executar e consultar resultados
 
 | Objetivo | Linux / macOS / WSL | Windows PowerShell |

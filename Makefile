@@ -1,39 +1,43 @@
 .DEFAULT_GOAL := help
-.PHONY: help test-api test-e2e test-all test-api-finding typecheck test-load-smoke test-load
+PYTHON ?= python3
+.PHONY: help test-api test-e2e test-regression test-all test-api-finding typecheck test-load-smoke test-load test-mobile
 
 help:
-	@printf '%s\n' \
-	  'make help              Exibe os comandos disponíveis' \
-	  'make test-api          Ruff e regressão API, sem quality_finding' \
-	  'make test-e2e          Suíte completa em Toolshop isolado e descartável' \
-	  'make test-all          Executa API e E2E e informa ambos os resultados' \
-	  'make test-api-finding  Executa API-001 com resultado real' \
-	  'make typecheck         Instala dependências web e valida TypeScript' \
-	  'make test-load-smoke   API mock local: 10 VUs por 15 segundos' \
-	  'make test-load         API mock local: 500 VUs por 5 minutos'
+	@echo make help              Exibe os comandos disponíveis
+	@echo make test-api          Ruff e regressao API
+	@echo make test-e2e          Suite Web privada completa
+	@echo make test-regression   API e E2E, informa ambos os resultados
+	@echo make test-all          API, E2E, carga e mobile
+	@echo make test-api-finding  API-001, falha conhecida preservada
+	@echo make typecheck         Instala dependencias Web e valida TypeScript
+	@echo make test-load-smoke   API mock local: 10 VUs por 15 segundos
+	@echo make test-load         API mock local: 500 VUs por 5 minutos
+	@echo make test-mobile       Android preparado, Appium e APK verificado
 
 test-api:
-	python3 scripts/run_api.py
+	$(PYTHON) scripts/run_api.py
 
 test-e2e:
-	python3 scripts/run_e2e.py
+	$(PYTHON) scripts/run_e2e.py
+
+test-regression:
+	$(PYTHON) scripts/run_all.py regression
 
 test-all:
-	@$(MAKE) --no-print-directory test-api; api_status=$$?; \
-	  $(MAKE) --no-print-directory test-e2e; e2e_status=$$?; \
-	  printf 'test-api: %s | test-e2e: %s\n' "$$api_status" "$$e2e_status"; \
-	  if [ "$$api_status" -ne 0 ]; then exit "$$api_status"; fi; \
-	  exit "$$e2e_status"
+	$(PYTHON) scripts/run_all.py all
 
 test-api-finding:
-	python3 scripts/run_api.py --finding
+	$(PYTHON) scripts/run_api.py --finding
 
 typecheck:
 	cd web && npm ci --no-audit --no-fund
 	cd web && npx tsc --noEmit
 
 test-load-smoke:
-	python3 scripts/run_load.py smoke
+	$(PYTHON) scripts/run_load.py smoke
 
 test-load:
-	python3 scripts/run_load.py load
+	$(PYTHON) scripts/run_load.py load
+
+test-mobile:
+	bash .github/scripts/mobile-ci.sh
