@@ -1,5 +1,6 @@
 import type { Locator, Page } from "playwright";
 import type { BillingAddress, BillingField, GuestDetails } from "../support/test-data.ts";
+import type { PostcodeLocality } from "../support/checkout-responses.ts";
 
 export class CheckoutPage {
   readonly guestTab: Locator;
@@ -16,7 +17,7 @@ export class CheckoutPage {
   readonly paymentMethod: Locator;
   readonly finish: Locator;
 
-  constructor(private readonly page: Page) {
+  constructor(page: Page) {
     this.guestTab = page.getByRole("tab", { name: "Continue as Guest" });
     this.guestEmail = page.locator('[data-test="guest-email"]');
     this.guestFirstName = page.locator('[data-test="guest-first-name"]');
@@ -49,30 +50,20 @@ export class CheckoutPage {
     await this.guestProceed.click();
   }
 
-  async fillBillingAddress(address: BillingAddress, omittedField?: BillingField): Promise<void> {
+  async fillBillingPostalDetails(address: BillingAddress): Promise<void> {
     await this.country.selectOption({ label: address.country });
     await this.billingFields.postal_code.fill(address.fields.postal_code);
-    const [lookup] = await Promise.all([
-      this.page.waitForResponse((response) => {
-        const url = new URL(response.url());
-        return url.pathname === "/postcode-lookup" &&
-          url.searchParams.get("postcode") === address.fields.postal_code &&
-          url.searchParams.get("house_number") === address.fields.house_number;
-      }),
-      this.billingFields.house_number.fill(address.fields.house_number),
-    ]);
-    if (!lookup.ok()) {
-      throw new Error(`Postcode lookup failed: HTTP ${lookup.status()}`);
-    }
-    const locality = await lookup.json();
-    // The application validates city/state against this deterministic lookup.
-    // Use its synthetic locality rather than racing the automatic field update.
+    await this.billingFields.house_number.fill(address.fields.house_number);
+  }
+
+  async fillBillingLocality(locality: PostcodeLocality): Promise<void> {
     for (const field of ["street", "city", "state"] as const) {
       await this.billingFields[field].fill(locality[field]);
     }
-    if (omittedField) {
-      await this.billingFields[omittedField].fill("");
-    }
+  }
+
+  async clearBillingField(field: BillingField): Promise<void> {
+    await this.billingFields[field].fill("");
   }
 
   async openPayment(): Promise<void> {

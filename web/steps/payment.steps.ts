@@ -4,6 +4,8 @@ import { expect } from "playwright/test";
 import { CheckoutPage } from "../pages/checkout.page.ts";
 import { PaymentPage } from "../pages/payment.page.ts";
 import { InvoiceApi } from "../support/invoice-api.ts";
+import { waitForCheckoutPost } from "../support/checkout-responses.ts";
+import { checkoutApiRoutes } from "../support/routes.ts";
 import { createTestCard } from "../support/test-data.ts";
 import type { E2EWorld } from "../support/world.ts";
 
@@ -30,7 +32,10 @@ When("I provide a synthetic card with {word} format", async function (this: E2EW
 When("I check the demonstration payment", async function (this: E2EWorld) {
   assert.ok(this.page);
   const payment = new PaymentPage(this.page);
-  const response = await payment.checkPayment();
+  const [response] = await Promise.all([
+    waitForCheckoutPost(this.page, checkoutApiRoutes.paymentCheck),
+    payment.submit(),
+  ]);
   assert.equal(response.status(), 200);
   assert.equal((await response.json()).message, "Payment was successful");
   await expect(payment.success).toHaveText("Payment was successful");
@@ -39,7 +44,11 @@ When("I check the demonstration payment", async function (this: E2EWorld) {
 
 When("I confirm my order", async function (this: E2EWorld) {
   assert.ok(this.page);
-  this.orderResponse = await new PaymentPage(this.page).confirmOrder();
+  const [response] = await Promise.all([
+    waitForCheckoutPost(this.page, checkoutApiRoutes.guestInvoice),
+    new PaymentPage(this.page).submit(),
+  ]);
+  this.orderResponse = response;
 });
 
 Then("my order should be confirmed and persisted with the selected product", async function (this: E2EWorld) {

@@ -11,7 +11,24 @@ import type { BillingField } from "../support/test-data.ts";
 import { ProductPage } from "../pages/product.page.ts";
 import { moneyToCents } from "../support/money.ts";
 import { routes } from "../support/routes.ts";
+import { waitForPostcodeLookup } from "../support/checkout-responses.ts";
+import type { BillingAddress } from "../support/test-data.ts";
 import type { E2EWorld } from "../support/world.ts";
+
+async function provideBillingAddress(
+  world: E2EWorld,
+  address: BillingAddress,
+  omittedField?: BillingField
+): Promise<void> {
+  assert.ok(world.page, "Page not initialized");
+  const checkout = new CheckoutPage(world.page);
+  const [locality] = await Promise.all([
+    waitForPostcodeLookup(world.page, address.fields.postal_code, address.fields.house_number),
+    checkout.fillBillingPostalDetails(address),
+  ]);
+  await checkout.fillBillingLocality(locality);
+  if (omittedField) await checkout.clearBillingField(omittedField);
+}
 
 Given("I have added an available product to my cart", async function (this: E2EWorld) {
   assert.ok(this.page, "Page not initialized");
@@ -70,8 +87,7 @@ When("I continue checkout as a guest", async function (this: E2EWorld) {
 });
 
 When("I provide a complete billing address", async function (this: E2EWorld) {
-  assert.ok(this.page, "Page not initialized");
-  await new CheckoutPage(this.page).fillBillingAddress(billingAddress);
+  await provideBillingAddress(this, billingAddress);
 });
 
 When(
@@ -82,7 +98,7 @@ When(
       ["postal_code", "house_number", "street", "city", "state"].includes(field),
       `Unexpected billing field: ${field}`
     );
-    await new CheckoutPage(this.page).fillBillingAddress(billingAddress, field as BillingField);
+    await provideBillingAddress(this, billingAddress, field as BillingField);
   }
 );
 

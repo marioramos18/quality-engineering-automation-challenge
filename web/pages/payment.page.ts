@@ -1,4 +1,4 @@
-import type { Locator, Page, Response } from "playwright";
+import type { Locator, Page } from "playwright";
 import type { TestCard } from "../support/test-data.ts";
 
 export class PaymentPage {
@@ -12,7 +12,7 @@ export class PaymentPage {
   readonly confirmation: Locator;
   readonly cardNumberError: Locator;
 
-  constructor(private readonly page: Page) {
+  constructor(page: Page) {
     this.method = page.locator('[data-test="payment-method"]');
     this.cardNumber = page.locator('[data-test="credit_card_number"]');
     this.expiration = page.locator('[data-test="expiration_date"]');
@@ -32,21 +32,7 @@ export class PaymentPage {
     await this.cardHolder.fill(card.holder);
   }
 
-  async checkPayment(): Promise<Response> {
-    const [response] = await Promise.all([
-      this.page.waitForResponse((response) =>
-        new URL(response.url()).pathname === "/payment/check" && response.request().method() === "POST"),
-      this.finish.click(),
-    ]);
-    return response;
-  }
-
-  async confirmOrder(): Promise<Response> {
-    const [response] = await Promise.all([
-      this.page.waitForResponse((response) =>
-        new URL(response.url()).pathname === "/invoices/guest" && response.request().method() === "POST"),
-      this.finish.click(),
-    ]);
-    return response;
+  async submit(): Promise<void> {
+    await this.finish.click();
   }
 }

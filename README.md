@@ -31,7 +31,7 @@ scripts/                 Comandos Python portáteis de API, E2E e carga
 docs/                    Estratégia, achados, resultados e pendências
 ```
 
-Os Page Objects mantêm locators como propriedades e concentram ações. Os steps contêm as assertivas de negócio. Configuração, credenciais, dados sintéticos, auditoria de pedidos e escrita de diagnósticos ficam separados. Cada cenário cria seu próprio contexto de navegador; não há sleeps fixos nem retries de cenários.
+Os Page Objects mantêm locators como propriedades e concentram ações da interface. Os steps contêm as assertivas de negócio; rotas e leitura das respostas HTTP do checkout ficam em `web/support/`. Configuração, credenciais, dados sintéticos, auditoria de pedidos e escrita de diagnósticos ficam separados. Cada cenário cria seu próprio contexto de navegador; não há sleeps fixos nem retries de cenários.
 
 ## Instalação e início rápido
 
@@ -43,6 +43,19 @@ cd quality-engineering-automation-challenge
 ```
 
 Instale Git e Python 3.12. Para as suítes completas de API/E2E e para carga, instale Docker com Compose v2. Para API, instale também [uv](https://docs.astral.sh/uv/getting-started/installation/). Não é necessário Node no host para o E2E em Docker. O primeiro download das imagens pode demorar vários minutos e consumir alguns GB.
+
+### Avaliador no Windows PowerShell
+
+Instale Python 3.12 e Docker Desktop com Compose v2. Inicie o Docker Desktop em modo de containers Linux e, na raiz do projeto, confira os pré-requisitos antes do E2E:
+
+```powershell
+py -3.12 --version
+docker info
+docker compose version
+py -3.12 scripts/run_e2e.py
+```
+
+Se `docker info` mostrar `dockerDesktopLinuxEngine ... The system cannot find the file specified`, o Engine Linux ainda não está acessível. Aguarde o Docker Desktop iniciar, confira o modo de containers Linux e o contexto em `docker context ls`; repita `docker info` antes de executar o E2E. O comando Python executa a instalação privada, o typecheck, os testes e a geração do relatório em `reports/e2e-isolated/`. A execução funcional em Windows ainda precisa ser validada nesse sistema.
 
 | Sistema | Preparação | E2E completo | Carga smoke |
 | --- | --- | --- | --- |
