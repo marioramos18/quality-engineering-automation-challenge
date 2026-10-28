@@ -194,29 +194,28 @@ O HTML E2E inclui screenshots dos cenários e, na compra, o identificador e os v
 
 ## CI e facilitadores
 
-| Workflow | Gatilhos | Comportamento |
+### Como executar cada suíte
+
+Na raiz do projeto, escolha a suíte. Os comandos `make` exigem GNU Make; API, E2E e carga exigem Python 3.12, Docker com containers Linux e Compose v2. A API também usa `uv`. No Windows PowerShell, instale GNU Make e acrescente `PYTHON="py -3.12"` ao comando, por exemplo `make PYTHON="py -3.12" test-regression`. A execução funcional em Windows ainda não foi validada.
+
+| Suíte | Comando local | GitHub Actions |
 | --- | --- | --- |
-| Quality | Push em qualquer branch, PR, manual | API privada, diagnóstico API-001, E2E isolado com typecheck e proteções Python nativas em Windows/macOS |
-| Mobile Android Tests | Push em qualquer branch, PR para `main`, manual | Dois testes Android em emulador |
-| Performance | Manual, `smoke` ou `load` | Mock privada e thresholds k6 |
+| API regressão | `make test-api` | **Quality** → **Run workflow**; executa API junto com E2E |
+| E2E Web, typecheck e testes de isolamento | `make test-e2e` | **Quality** → **Run workflow**; executa E2E junto com API |
+| API + E2E | `make test-regression` | **Quality** → **Run workflow** |
+| Achado API-001 | `make test-api-finding` | Etapa diagnóstica de **Quality**; a falha é esperada e registrada |
+| Carga smoke, 10 VUs por 15 s | `make test-load-smoke` | **Performance** → **Run workflow** → perfil `smoke` |
+| Carga completa, 500 VUs por 5 min | `make test-load` | **Performance** → **Run workflow** → perfil `load` |
+| Mobile Android | `make test-mobile` | **Mobile Android Tests** → **Run workflow** |
+| API + E2E + ambas as cargas + mobile | `make test-all` | Execute **Quality**, **Performance** nos dois perfis e **Mobile Android Tests**; não há workflow único |
+
+Para executar no GitHub, abra a aba **Actions** do repositório, escolha o workflow indicado e clique em **Run workflow**. **Quality** e **Mobile Android Tests** também iniciam automaticamente em push; **Performance** é manual. A execução manual exige permissão de escrita no repositório. Sem essa permissão, o avaliador pode consultar os resultados e artifacts das execuções existentes ou executar os workflows em um fork com Actions habilitado.
+
+O workflow **Mobile Android Tests** prepara Android API 35, emulador, `adb`, Appium, UiAutomator2 e o APK com checksum; esses itens não precisam estar instalados no computador do avaliador para usar o GitHub Actions. Localmente, `make test-mobile` exige Linux/WSL com emulador ativo, Android SDK, Appium/UiAutomator2, `uv` e `APK_PATH` para o APK verificado. `make test-all` verifica os pré-requisitos básicos do mobile antes de iniciar qualquer suíte e falha com diagnóstico se faltarem. O diagnóstico API-001 permanece fora de `make test-all`, pois retorna falha conhecida por definição.
 
 Uploads usam `if: always()`. O API-001 continua não bloqueante apenas na etapa diagnóstica com `continue-on-error`, mas seu resultado original é registrado; não integra os 22 testes aprovados. Regressão API e E2E são bloqueantes. O histórico de Cloudflare no serviço público permanece documentado, mas o novo job E2E utiliza a instância privada.
 
-### Executar com GNU Make
-
-Com Python 3.12, Docker Linux ativo e GNU Make instalados, execute na raiz:
-
-```text
-make test-regression
-make test-load-smoke
-make test-load
-```
-
-`make test-regression` executa API e E2E e informa o resultado de ambos, mesmo quando um falha. O E2E já inclui typecheck e testes de isolamento. `make test-api`, `make test-e2e` e `make typecheck` também podem ser executados separadamente; `make typecheck` requer Node/npm no host. `make test-api-finding` preserva o API-001 e **deve retornar código diferente de zero**. `make help` lista os targets.
-
-No Windows PowerShell, instale GNU Make e use `make PYTHON="py -3.12" test-regression` após `docker info` confirmar o Engine Linux. O Makefile não inicia o Docker Desktop. Esta forma foi preparada para o shell do Windows, mas a execução funcional completa nesse sistema ainda não foi validada. Os comandos Python diretos acima continuam disponíveis.
-
-`make test-all` executa API, E2E, carga smoke, carga completa e mobile; antes de começar verifica os pré-requisitos básicos do Android. Requer Linux/WSL, emulador ativo, `adb`, Appium com UiAutomator2, `uv` e `APK_PATH` apontando para o APK oficial verificado. `make test-mobile` usa o mesmo script do CI. O host desta revisão não possui esse ambiente; o workflow **Mobile Android Tests** é o caminho comprovado. A carga completa dura cerca de cinco minutos. O diagnóstico API-001 fica separado por retornar falha conhecida.
+`make typecheck` valida TypeScript separadamente e requer Node/npm no host. `make help` lista os targets. `make test-regression` informa os resultados de API e E2E mesmo se uma das suítes falhar. Os comandos Python diretos das seções anteriores continuam disponíveis sem GNU Make.
 
 ## Limites e documentação
 
