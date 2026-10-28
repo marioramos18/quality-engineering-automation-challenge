@@ -184,11 +184,11 @@ O login é simulado pelo aplicativo. O segundo teste salva um valor em Data Mana
 | Web isolado | 17 cenários e 103 passos aprovados; 4 testes de isolamento e typecheck aprovados | `reports/e2e-isolated/` |
 | Web público seguro | 10 cenários e 57 passos aprovados; login positivo público não comprovado | `reports/e2e-public-safe/` |
 | Carga completa | 500 VUs, 5 min, 150.000 requisições, 0% erros, 3 thresholds aprovados | `reports/performance/` |
-| Mobile | 2 aprovados no PR #2; host local sem Android SDK/KVM | `reports/mobile/` no artifact |
+| Mobile | 2 aprovados no CI do commit `6238231`; host local sem Android SDK/KVM | `reports/mobile/` no artifact |
 
-API, E2E, mobile e proteções Python Windows/macOS passaram no GitHub Actions para o commit `3ad8224`: [resultados, tempos e artifacts](docs/evidence/ci-validation.md). O API-001 permanece FAILED no diagnóstico separado.
+API, E2E e mobile passaram nos workflows de push [Quality](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/40691719140) e [Mobile Android Tests](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/40691719161) do commit `6238231`; os JUnit e artifacts estão descritos no [registro de validação](docs/evidence/ci-validation.md). O API-001 permanece FAILED no diagnóstico separado.
 
-A [validação local anterior](docs/evidence/local-validation.md) registra a API privada, o segundo destino da API, o E2E e o smoke de carga. A [verificação Web em duas origens](docs/evidence/web-second-origin.md) identifica separadamente o código `c35066b` e os resultados locais. A evidência remota de CI acima se refere ao código `3ad8224`; não comprova automaticamente commits posteriores.
+A [validação local anterior](docs/evidence/local-validation.md) registra a API privada, o segundo destino da API, o E2E e o smoke de carga. A [verificação Web em duas origens](docs/evidence/web-second-origin.md) identifica separadamente o código `c35066b` e os resultados locais. As evidências de CI identificam seus commits; não comprovam automaticamente commits posteriores.
 
 O HTML E2E inclui screenshots dos cenários e, na compra, o identificador e os valores do pedido consultado. Também são gerados JUnit, `cucumber.log`, `services.log` e JSON/PNG de diagnóstico em falhas. `reports/` é ignorado pelo Git; os artifacts do CI preservam os resultados da execução. A [matriz de cobertura e pendências](docs/test-strategy.md) distingue resultado local, histórico remoto e itens ainda não comprovados.
 

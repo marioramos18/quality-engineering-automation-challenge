@@ -1,8 +1,22 @@
-# Validação no GitHub Actions — 25/10/2026
+# Validação no GitHub Actions — 28/10/2026
 
 A entrega foi integrada à branch padrão `main` pelo [PR #2](https://github.com/marioramos18/quality-engineering-automation-challenge/pull/2), merge `79527173387a68b24194330dd6280e7c443b4975`. O clone padrão contém a implementação e o passo a passo completos. Os registros abaixo preservam os commits efetivamente validados e seu histórico.
 
-## Revisão final — commit 3ad8224
+## Validação mais recente — commit 6238231
+
+Código validado: `623823137909a9555a86f7cdb27f94004eca0d2c`, branch `main`. Os workflows de push [Quality](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/40691719140) e [Mobile Android Tests](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/runs/40691719161) concluíram com `success`. Os artifacts foram baixados e os JUnit conferidos.
+
+| Suíte | Resultado conferido | Evidência |
+| --- | --- | --- |
+| API privada | 22 aprovados, 0 falhas, 0 erros, 0 skips | Quality, artifact `api-tests-reports`, `api-regression/junit.xml` |
+| Proteções API / runner | 13 aprovados, 0 falhas, 0 erros, 0 skips | Mesmo artifact, `api-guards/junit.xml` |
+| Diagnóstico API-001 | 1 falha, 0 erros, 0 skips; etapa não bloqueante | Mesmo artifact, `api-quality-findings/junit.xml` |
+| E2E privado | 17 cenários e 103 passos aprovados, 0 falhas, 0 skips | Quality, artifact `e2e-isolated-reports`, `junit.xml` e `cucumber.log` |
+| Mobile Android | 2 aprovados, 0 falhas, 0 erros, 0 skips | Mobile, artifact `mobile-android-poc`, `junit.xml` |
+
+Os jobs de Quality, inclusive os checks Python de Windows/macOS, e o job Android concluíram com `success`. O sucesso do job API não muda o resultado FAILED do API-001, que permanece visível no JUnit. Carga não integra esses dois workflows: o [workflow Performance](https://github.com/marioramos18/quality-engineering-automation-challenge/actions/workflows/performance.yml) é manual e sua execução registrada se refere a outro commit. A validação funcional completa em Windows/macOS continua pendente.
+
+## Histórico — commit 3ad8224
 
 Código validado: `3ad822468bb36a0236a742a9eb4a93e58cc349fb`, branch `feat/isolated-e2e-checkout`, [PR #2](https://github.com/marioramos18/quality-engineering-automation-challenge/pull/2). Os artifacts foram baixados e os JUnit conferidos. A atualização documental posterior não altera esse código.
 

@@ -10,6 +10,7 @@ Referências: PDF de quatro páginas `Avaliação - Automação de Testes.docx.p
 | Separar validações, chaves, URLs e dependências dos Page Objects | Assertions nos steps; `support/config.ts`, `routes.ts`, `checkout-responses.ts`, dados, auditoria e diagnósticos separados | Page Objects mantêm locators e ações de interface |
 | Mesmo código E2E para diferentes ambientes | `WEB_BASE_URL` e credenciais por ambiente; [10 cenários seguros passaram em segunda origem](evidence/web-second-origin.md) com o código `c35066b` | Login positivo público bloqueado pela conta compartilhada; negativos e pedidos exigem isolamento |
 | Execução independente de Make | `scripts/run_api.py`, `scripts/run_e2e.py` e `scripts/run_load.py`; comandos diretos no README e no roteiro do avaliador | Docker precisa estar instalado e iniciado |
+| Comandos Make para o avaliador | `make test-regression` reúne API e E2E; `make test-all` reúne API, E2E, carga e mobile com pré-checagem Android; targets individuais no README | Mobile local requer emulador, Appium e APK; no CI o workflow prepara o ambiente |
 | Diagnóstico do erro `dockerDesktopLinuxEngine` | README descreve Engine Linux, contexto e integração WSL; executor verifica disponibilidade antes dos testes | Não comprova execução funcional no Windows |
 | Credenciais da API fora do código | `api/conftest.py` lê variáveis; `.env.example` e `api/isolated/credentials.env` contêm apenas contas demonstrativas | Arquivos privados e secrets não devem ser versionados |
 | Justificar Python por escrito | Resposta abaixo e no README | Escolha mantém dois ecossistemas, Python e TypeScript |
@@ -27,7 +28,7 @@ O PDF exige API com GET/POST/PUT/DELETE, status, headers, corpo, positivos, nega
 - Checkout: compra e cartão inválido têm evidência na instância privada. Os cinco negativos atuais verificam **endereço de cobrança**; o PDF cita endereço de entrega. A equivalência precisa ser explicitada ao avaliador, sem afirmar cobertura de uma etapa inexistente.
 - Mobile: o PDF pede preencher e enviar um formulário; **não exige backend remoto**. A rastreabilidade do teste, preenchimento, Save e readout está registrada em `mobile-feasibility.md`. A ausência de backend é um limite, não um requisito obrigatório adicional.
 - Carga: o PDF permite API mock. A execução de 500 VUs por 5 minutos está documentada, sem representar capacidade de produção.
-- CI: a revisão configura push em qualquer branch, PR e disparo manual para Quality/mobile. As evidências finais identificam o commit `3ad8224` aprovado em Quality e mobile.
+- CI: a revisão configura push em qualquer branch, PR e disparo manual para Quality/mobile. A [validação mais recente](evidence/ci-validation.md) identifica o commit `6238231` aprovado em Quality e mobile.
 
 | Critério registrado | Revisão atual |
 | --- | --- |
@@ -36,12 +37,12 @@ O PDF exige API com GET/POST/PUT/DELETE, status, headers, corpo, positivos, nega
 | Assertions de negócio nos steps | Validações de negócio preservadas nos steps; rotas e leitura das respostas HTTP centralizadas fora dos Page Objects |
 | Falhas reais visíveis | API-001 continua diagnóstico separado; nenhuma aceitação de 500, XFAIL ou skip acrescentado |
 | Contratos de erro fundamentados | 11 casos com status, corpo e media type; documentação distingue implementação de contrato normativo |
-| Reprodutibilidade e evidências | 22 API privados, 16 API em segundo destino, 13 proteções/runner, 17 cenários E2E privados e 10 Web públicos seguros aprovados; CI do código `3ad8224` aprovado, incluindo mobile e checks Python Windows/macOS |
+| Reprodutibilidade e evidências | 22 API privados, 16 API em segundo destino, 13 proteções/runner, 17 cenários E2E privados e 10 Web públicos seguros aprovados; CI do código `6238231` aprovado, incluindo mobile e checks Python Windows/macOS |
 | Autenticação negativa somente isolada | Resolvido localmente: regressão privada, seis negativos protegidos por coleta, opt-in e loopback; redirects desativados; 13 testes das proteções/runner aprovados |
 | Documentação coerente com a entrega | Investigação de alternativas marcada como histórica; limites de pagamento/mobile e plataformas mantidos |
 
-## Próxima ação
+## Estado atual e limites
 
-O código `c35066b` separou as respostas HTTP dos Page Objects e passou localmente na suíte Web privada (17 cenários) e em uma segunda origem pública com a seleção segura (10 cenários). O login positivo público permanece sem comprovação por bloqueio da conta compartilhada. [Evidência Web](evidence/web-second-origin.md). O CI remoto documentado para `3ad8224` aprovou Quality e mobile, incluindo checks Python em Windows/macOS; não comprova automaticamente `c35066b`. [Registro remoto](evidence/ci-validation.md). Docker Desktop nesses sistemas permanece sem validação funcional.
+O código `c35066b` separou as respostas HTTP dos Page Objects e passou localmente na suíte Web privada (17 cenários) e em uma segunda origem pública com a seleção segura (10 cenários). O login positivo público permanece sem comprovação por bloqueio da conta compartilhada. [Evidência Web](evidence/web-second-origin.md). O commit `6238231` passou em Quality e mobile por push, com JUnit conferidos; os checks Python em Windows/macOS passaram, mas Docker Desktop nesses sistemas permanece sem validação funcional. [Registro remoto](evidence/ci-validation.md).
 
-O usuário autorizou commit, push e acompanhamento do CI. `.vscode/settings.json` permaneceu fora dos commits. A revisão foi integrada à `main` pelo PR #2 no merge `7952717`, a pedido do usuário. A branch padrão contém a entrega completa; o clone não exige seleção de outra branch.
+`.vscode/settings.json` permaneceu fora dos commits anteriores. A revisão foi integrada à `main` pelo PR #2 no merge `7952717`. A branch padrão contém a entrega; o clone não exige seleção de outra branch. O diagnóstico API-001 continua falhando separadamente, a carga tem workflow manual e a execução local mobile requer ambiente Android preparado.

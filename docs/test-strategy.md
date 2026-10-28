@@ -25,7 +25,7 @@ O endereço demonstrativo é preenchido a partir da resposta de `/postcode-looku
 | Web: cartão inválido | `payment.feature` negativo | Formato inválido, mensagem específica, botão desabilitado, confirmação ausente e contagem de pedidos inalterada |
 | Relatório Web | Cucumber HTML e JUnit | Screenshot de cada cenário isolado, resumo do pedido e diagnósticos em falhas |
 | Web em outra origem | Mesmo código com `WEB_BASE_URL` público | [10 cenários seguros aprovados](evidence/web-second-origin.md); login positivo público não comprovado por bloqueio da conta compartilhada |
-| CI: API, Web, mobile após commits | Quality e Mobile Android Tests | Push na main e PR; [execuções atuais aprovadas](evidence/ci-validation.md) |
+| CI: API, Web, mobile após commits | Quality e Mobile Android Tests | Push na main e PR; [execuções do commit `6238231` aprovadas](evidence/ci-validation.md) |
 | Carga opcional | k6 500 VUs por 5 minutos | 150.000 requisições, zero erros, três thresholds aprovados na execução local de referência |
 | Mobile opcional | Dois testes Appium | Login simulado/navegação e gravação local após reinício; 2 aprovados no PR #2, além do histórico em mobile-feasibility.md |
 | README e publicação | README e workflows no GitHub | Entrega integrada à main pelo PR #2; clone padrão e comandos diretos independentes de Make |
@@ -50,7 +50,7 @@ Durante a validação da instância privada, uma execução encontrou HTTP 422 n
 
 ## Pendências e estratégia de conclusão
 
-A validação remota anterior de API, E2E completo e mobile foi concluída no PR #2. [Registro do commit, resultados e artifacts](evidence/ci-validation.md). A revisão final `3ad8224` foi validada remotamente com API, E2E, mobile e checks Python Windows/macOS aprovados; consulte o mesmo registro. As [evidências locais](evidence/local-validation.md) permanecem separadas.
+A validação remota anterior de API, E2E completo e mobile foi concluída no PR #2. O commit mais recente conferido, `6238231`, passou em Quality e Mobile Android Tests por push, com JUnit dos artifacts verificados; os checks Python Windows/macOS também passaram. [Registro dos commits, resultados e artifacts](evidence/ci-validation.md). As [evidências locais](evidence/local-validation.md) permanecem separadas.
 
 | Prioridade | Item restante | Próxima ação | Critério de aceite |
 | --- | --- | --- | --- |

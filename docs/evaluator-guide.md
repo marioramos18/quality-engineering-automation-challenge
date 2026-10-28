@@ -15,6 +15,8 @@ Abra o terminal nessa raiz. Confira `git --version`, `uv --version`, `docker inf
 
 Se GNU Make estiver instalado, use `make test-regression` para API e E2E; no Windows PowerShell, `make PYTHON="py -3.12" test-regression`. O Makefile oferece `make test-api`, `make test-e2e`, `make test-api-finding`, `make typecheck`, `make test-load-smoke`, `make test-load` e `make test-mobile`. `make test-all` executa API, E2E, carga e mobile quando houver Linux/WSL, emulador Android ativo, `adb`, Appium, UiAutomator2, `uv` e `APK_PATH` para o APK verificado; faz uma checagem prévia do ambiente mobile. O diagnóstico API-001 retorna erro intencional e fica separado. Os comandos Python abaixo dispensam Make.
 
+No GitHub, abra **Actions** e escolha **Quality** (API e E2E), **Mobile Android Tests** ou **Performance** (selecione `smoke` ou `load`). Clique em **Run workflow** para iniciar; esse botão exige permissão de escrita no repositório. Com acesso somente de leitura, consulte as [execuções e artifacts já publicados](evidence/ci-validation.md) ou use um fork com Actions habilitado para novas execuções. Quality e Mobile também iniciam em push; Performance é manual.
+
 ## Executar e consultar resultados
 
 | Objetivo | Linux / macOS / WSL | Windows PowerShell |
@@ -65,4 +67,4 @@ No serviço público, a [execução da segunda origem](evidence/web-second-origi
 
 O erro `dockerDesktopLinuxEngine ... The system cannot find the file specified` indica que o Engine Linux não está acessível. Abra o Docker Desktop, aguarde a inicialização, confirme containers Linux e consulte `docker context ls`. No WSL, confira a integração; no Linux, confira o serviço e acesso ao socket. Repita `docker info` antes dos testes.
 
-As execuções completas foram comprovadas em Linux. A documentação e os scripts oferecem comandos para os demais sistemas; o CI do commit `3ad8224` aprovou proteções Python e entrypoints em Windows/macOS, sem comprovar Docker Desktop ou E2E nesses hosts. A API fixa imagem `linux/amd64`; Apple Silicon depende de emulação e ainda não tem validação funcional. Não se afirma sucesso em plataformas não executadas.
+As execuções completas foram comprovadas em Linux. A documentação e os scripts oferecem comandos para os demais sistemas; o CI do commit `6238231` aprovou proteções Python e entrypoints em Windows/macOS, sem comprovar Docker Desktop ou E2E nesses hosts. A API fixa imagem `linux/amd64`; Apple Silicon depende de emulação e ainda não tem validação funcional. Não se afirma sucesso em plataformas não executadas.
